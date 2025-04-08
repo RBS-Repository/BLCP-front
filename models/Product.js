@@ -1,0 +1,42 @@
+import mongoose from 'mongoose';
+
+const productSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    minOrder: {
+      type: Number,
+      required: true,
+    },
+    category: {
+      type: String,
+      required: true,
+    },
+    targetMarket: [String],
+    image: {
+      type: String,
+    },
+    features: [String],
+    stock: {
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    timestamps: true, // Automatically include createdAt and updatedAt fields
+  }
+);
+
+const Product = mongoose.model('Product', productSchema);
+
+export default Product; 

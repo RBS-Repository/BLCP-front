@@ -1,0 +1,160 @@
+.mobile-profile-section {
+  padding: 1rem;
+  border-bottom: 1px solid #2d3748;
+}
+
+.mobile-profile-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-profile-info img {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #2d3748;
+}
+
+.mobile-profile-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.mobile-profile-actions a,
+.mobile-profile-actions button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.mobile-profile-actions a {
+  background-color: #2563eb;
+}
+
+.mobile-profile-actions a:hover {
+  background-color: #1d4ed8;
+}
+
+.mobile-profile-actions button {
+  background-color: #dc2626;
+}
+
+.mobile-profile-actions button:hover {
+  background-color: #b91c1c;
+}
+
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 320px;
+  background: #1a1a1a;
+  z-index: 1000;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-menu-container {
+  height: 100%;
+  overflow-y: auto;
+  padding: 1rem;
+  padding-top: 3rem;
+}
+
+.mobile-profile-section {
+  padding: 1rem;
+  background: #2d3748;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-nav-item {
+  margin: 0.5rem 0;
+}
+
+.mobile-nav-item .nav-link-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-item .nav-link-mobile:hover {
+  background: #2d3748;
+  color: #fff;
+}
+
+.mobile-nav-item .nav-link-mobile.active {
+  background: #363a94;
+  color: #fff;
+}
+
+.dropdown-menu-mobile {
+  padding-left: 1rem;
+  margin-top: 0.25rem;
+}
+
+.dropdown-item-mobile {
+  display: block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item-mobile:hover {
+  background: #2d3748;
+  color: #fff;
+}
+
+.mobile-auth-buttons {
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-logout-button {
+  margin-top: auto;
+}
+
+.mobile-logout-button button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.mobile-logout-button button:hover {
+  background-color: #b91c1c;
+}
+
+.hamburger-button path {
+  transition: all 0.3s ease;
+}
+
+.hamburger-button:hover path {
+  stroke: #fff;
+} 

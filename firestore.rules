@@ -1,0 +1,153 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Check if the user is an admin using custom claims
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Basic authenticated user check
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is accessing their own data
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Allow admins to read/write all collections
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Notifications collection - allow admins to create notifications for any user
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        isOwner(userId) || 
+        isAdmin() || 
+        resource.data.referredBy == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.referredBy == userId
+      );
+      
+      allow write: if isOwner(userId) || isAdmin();
+
+      allow create: if 
+        request.auth != null &&
+        request.auth.uid == userId &&
+        request.resource.data.firstName is string &&
+        request.resource.data.lastName is string &&
+        request.resource.data.email == request.auth.token.email &&
+        (request.resource.data.isAdmin == null || request.resource.data.isAdmin == false);
+
+      // Allow admins to list all users
+      allow list: if 
+        request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+
+      // Allow admins full access to user documents
+      allow get, update, delete: if 
+        request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+
+      // Allow users to access their own active account
+      allow get: if 
+        request.auth != null &&
+        request.auth.uid == userId &&
+        resource.data.isActive == true;
+
+      // Allow admins to update any user
+      allow update: if 
+        request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Add specific rules for referrals
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.referredUserId == request.auth.uid
+      );
+      allow write: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Schedules collection rules
+    match /schedules/{scheduleId} {
+      // Allow everyone to read schedules for availability checking
+      allow read: if true;
+      
+      // Allow both authenticated users and guest users to create appointments
+      allow create: if
+        // For authenticated users
+        (request.auth != null &&
+         request.resource.data.userId == request.auth.uid &&
+         request.resource.data.firstName is string &&
+         request.resource.data.lastName is string)
+        ||
+        // For guest users - simplified and more permissive rule
+        (request.auth == null &&
+         request.resource.data.isGuestBooking == true);
+
+      // Admin-only write access for updates and deletes
+      allow update, delete: if  
+        request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Products collection rules
+    match /products/{productId} {
+      allow read: if true;  // Public read access
+      allow write: if 
+        request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Admin-specific collections
+    match /admin/{document=**} {
+      allow read, write: if 
+        request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Add this rule for the userRewards collection
+    match /userRewards/{rewardId} {
+      // Allow users to read their own rewards
+      allow read: if 
+        request.auth != null &&
+        request.auth.uid == resource.data.userId;
+      
+      // Allow admins to read and write all rewards
+      allow read, write: if 
+        request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Settings collection rules
+    match /settings/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Wishlists collection rules
+    match /wishlists/{userId} {
+      // Allow users to read and write their own wishlist only
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow admins to access all wishlists
+      allow read, write: if isAdmin();
+    }
+  }
+} 

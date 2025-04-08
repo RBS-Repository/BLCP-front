@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Allow creation with required fields and prevent self-admin assignment
+      allow create: if 
+        request.auth != null &&
+        request.auth.uid == userId &&
+        request.resource.data.firstName is string &&
+        request.resource.data.lastName is string &&
+        request.resource.data.email == request.auth.token.email &&
+        (request.resource.data.isAdmin == null || request.resource.data.isAdmin == false);
+
+      // Users can only read their own document
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow list: if false;
+
+      // Allow updates with admin checks
+      allow update: if (
+          // Non-admin updates
+          (
+            request.auth.uid == userId &&
+            request.resource.data.firstName is string &&
+            request.resource.data.lastName is string &&
+            request.resource.data.isAdmin == resource.data.isAdmin
+          ) || 
+          // Admin privilege updates
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true &&
+            "isAdmin" in request.resource.data
+          )
+        );
+
+      // Users can delete their own account
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // Add admin-specific access rules
+      match /admin/{document=**} {
+        allow read, write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      }
+    }
+    
+    // Add admin access to other collections
+    match /products/{document} {
+      allow read: if true;
+      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // New schedules collection rules
+    match /schedules/{scheduleId} {
+      // Allow public submission of schedules
+      allow create: if request.auth == null || request.auth != null;
+      
+      // Only admins can read/update/delete schedules
+      allow read, update, delete: if 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+  }
+}

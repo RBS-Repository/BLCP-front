@@ -1,0 +1,7 @@
+backend/**
+server/**
+api/**
+README.md
+.env
+.env.*
+.git/** 

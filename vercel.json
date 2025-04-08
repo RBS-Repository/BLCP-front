@@ -1,0 +1,29 @@
+{
+  "framework": "vite",
+  "buildCommand": "pnpm install --production=false && pnpm run build",
+  "outputDirectory": "dist",
+  "devCommand": "pnpm run dev",
+  "installCommand": "pnpm install --production=false",
+  "env": {
+    "VITE_API_BASE_URL": "https://blcpbybmmc.onrender.com/api"
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://blcpbybmmc.onrender.com/api/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html",
+      "status": 200
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "backend": false
+    }
+  }
+} 

@@ -1,0 +1,23 @@
+.customers-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.customers-table th,
+.customers-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.action-btn.view {
+  background-color: #3498db;
+  color: white;
+}
+
+.action-btn.message {
+  background-color: #9b59b6;
+  color: white;
+} 
