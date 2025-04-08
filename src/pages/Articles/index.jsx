@@ -58,193 +58,19 @@ const ArticlesIndex = () => {
     { id: 'business', name: 'Business' }
   ];
   
-  const displayArticles = articles.length > 0 ? articles : [
-    {
-      id: 1,
-      title: 'Understanding Korean Skincare Ingredients',
-      excerpt: 'A comprehensive guide to popular Korean skincare ingredients and their benefits for different skin types. Learn about innovative ingredients that make K-beauty unique.',
-      category: 'skincare',
-      date: 'March 15, 2024',
-      readTime: '8 min read',
-      image: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?q=80&w=2070',
-      featured: true,
-      content: `
-        <p>Korean skincare has gained worldwide popularity for its innovative ingredients and effective formulations. This guide explores the most popular ingredients found in K-beauty products and their benefits for various skin concerns.</p>
-        
-        <h3>Snail Mucin</h3>
-        <p>Snail mucin is a powerhouse ingredient known for its ability to repair damaged skin, improve hydration, and promote collagen production. Rich in hyaluronic acid, glycoproteins, and antimicrobial peptides, it helps soothe irritation while providing intense moisture.</p>
-        
-        <h3>Centella Asiatica (Cica)</h3>
-        <p>This ancient medicinal herb contains madecassoside, which calms inflammation and strengthens the skin barrier. Ideal for sensitive and acne-prone skin, Centella Asiatica promotes wound healing and reduces redness.</p>
-        
-        <h3>Galactomyces Ferment Filtrate</h3>
-        <p>A byproduct of fermented sake, this ingredient is packed with vitamins, amino acids, and minerals that brighten skin tone, minimize pores, and improve texture. It's often found in Korean first treatment essences.</p>
-        
-        <h3>Propolis</h3>
-        <p>Collected by bees, propolis has antibacterial and antifungal properties that make it excellent for acne-prone skin. It also provides antioxidant protection and supports the skin's natural healing process.</p>
-        
-        <h3>Conclusion</h3>
-        <p>The effectiveness of Korean skincare ingredients comes from both innovative science and time-tested natural remedies. When incorporating these ingredients into your routine, remember to introduce them gradually and pay attention to how your skin responds.</p>
-      `
-    },
-    {
-      id: 2,
-      title: 'The FDA Registration Process Explained',
-      excerpt: 'Step-by-step guide to registering your cosmetic products with the Philippine FDA. Navigate the regulatory landscape with confidence.',
-      category: 'compliance',
-      date: 'March 10, 2024',
-      readTime: '10 min read',
-      image: 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?q=80&w=2070',
-      content: `
-        <p>Navigating the FDA registration process for cosmetic products in the Philippines can be complex but is essential for legally marketing your beauty products.</p>
-        
-        <h3>Step 1: Determine Your Product Classification</h3>
-        <p>Before beginning the registration process, determine whether your product is classified as a cosmetic, drug, or combination product, as this affects the registration requirements.</p>
-        
-        <h3>Step 2: Prepare Required Documents</h3>
-        <p>Gather necessary documentation including:</p>
-        <ul>
-          <li>Product information file (PIF)</li>
-          <li>Certificate of Analysis</li>
-          <li>Good Manufacturing Practice (GMP) Certificate</li>
-          <li>Product specifications and formula</li>
-          <li>Packaging artwork and labels</li>
-        </ul>
-        
-        <h3>Step 3: Submit Your Application</h3>
-        <p>File your application through the FDA Electronic Portal. Pay the required fees and track your application status through the portal.</p>
-        
-        <h3>Step 4: Respond to FDA Queries</h3>
-        <p>Be prepared to respond promptly to any FDA queries or requests for additional information about your product.</p>
-        
-        <h3>Step 5: Receive Your Certificate of Product Notification</h3>
-        <p>Upon approval, you'll receive a Certificate of Product Notification (CPN) valid for 2-5 years depending on the product category.</p>
-        
-        <h3>Conclusion</h3>
-        <p>While the FDA registration process requires careful attention to detail, working with experienced regulatory consultants can streamline the process and help ensure compliance with all requirements.</p>
-      `
-    },
-    {
-      id: 3,
-      title: 'Private Label vs OEM Manufacturing',
-      excerpt: 'Understanding the differences between private label and OEM manufacturing to choose the right option for your beauty brand.',
-      category: 'manufacturing',
-      date: 'March 5, 2024',
-      readTime: '7 min read',
-      image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?q=80&w=2008',
-      content: `
-        <p>When launching a beauty brand, one of the most important decisions is choosing between private label and OEM manufacturing. Understanding the key differences will help you make the right choice for your business goals and budget.</p>
-        
-        <h3>What is Private Label Manufacturing?</h3>
-        <p>Private label manufacturing involves selecting ready-made formulations from a manufacturer's catalog and applying your brand name and packaging. The formulations are typically standardized with limited customization options.</p>
-        
-        <h3>Benefits of Private Label</h3>
-        <ul>
-          <li>Lower minimum order quantities (typically 250-500 units)</li>
-          <li>Faster time to market (usually 4-8 weeks)</li>
-          <li>Lower upfront costs and reduced development expenses</li>
-          <li>Perfect for startups and smaller brands</li>
-        </ul>
-        
-        <h3>What is OEM (Original Equipment Manufacturing)?</h3>
-        <p>OEM manufacturing involves developing custom formulations specifically for your brand. You have control over ingredients, textures, scents, and performance characteristics.</p>
-        
-        <h3>Benefits of OEM</h3>
-        <ul>
-          <li>Completely unique formulations tailored to your brand vision</li>
-          <li>Exclusive product offerings that can't be replicated</li>
-          <li>Greater control over ingredients and product performance</li>
-          <li>Better suited for established brands seeking differentiation</li>
-        </ul>
-        
-        <h3>Which Option Is Right For You?</h3>
-        <p>Choose private label if you're just starting out, have budget constraints, or need to launch quickly. Opt for OEM if product uniqueness is essential to your brand strategy and you can accommodate higher MOQs and longer development timelines.</p>
-      `
-    },
-    {
-      id: 4,
-      title: 'Clean Beauty: Beyond the Buzzword',
-      excerpt: 'What "clean beauty" really means and how to evaluate claims about natural and organic ingredients in cosmetic products.',
-      category: 'business',
-      date: 'February 25, 2024',
-      readTime: '12 min read',
-      image: 'https://images.unsplash.com/photo-1597854408833-ef0c9fd42c9f?q=80&w=1974',
-      content: `
-        <p>The term "clean beauty" has become ubiquitous in the cosmetics industry, but what does it actually mean? This article breaks down the reality behind the marketing to help you make informed decisions.</p>
-        
-        <h3>The Definition Problem</h3>
-        <p>Unlike "organic" or "pharmaceutical," the term "clean beauty" lacks standardized regulation or certification. Each brand defines it differently, leading to consumer confusion and potential greenwashing.</p>
-        
-        <h3>Common Clean Beauty Claims</h3>
-        <ul>
-          <li>"Free from" claims (parabens, sulfates, phthalates, etc.)</li>
-          <li>Natural or naturally-derived ingredients</li>
-          <li>Sustainability and ethical sourcing</li>
-          <li>Minimal processing and preservatives</li>
-        </ul>
-        
-        <h3>Natural vs. Safe: The Scientific Perspective</h3>
-        <p>The assumption that natural ingredients are inherently safer than synthetic ones isn't supported by science. Some natural ingredients can cause irritation (essential oils) while some synthetic ingredients have extensive safety data.</p>
-        
-        <h3>Evaluating Clean Beauty Products</h3>
-        <p>Look beyond marketing claims and focus on transparency. Brands should provide clear information about ingredient sourcing, manufacturing processes, and substantiate any claims with evidence.</p>
-        
-        <h3>The Future of Clean Beauty</h3>
-        <p>The industry is moving toward more standardized definitions and certifications for clean beauty. This will help consumers make better choices and hold brands accountable for their claims.</p>
-      `
-    },
-    {
-      id: 5,
-      title: 'Launching Your Beauty Brand on a Budget',
-      excerpt: 'Practical strategies for aspiring entrepreneurs to start a beauty business with limited capital without compromising on quality.',
-      category: 'business',
-      date: 'February 20, 2024',
-      readTime: '9 min read',
-      image: 'https://images.unsplash.com/photo-1583209814683-c023dd293cc6?q=80&w=2070',
-      content: `
-        <p>Starting a beauty brand doesn't require millions in capital. With strategic planning and a lean approach, you can launch a successful beauty business even with limited funds.</p>
-        
-        <h3>Start with a Focused Product Line</h3>
-        <p>Instead of launching multiple products simultaneously, start with 1-3 hero products. This reduces upfront costs and allows you to perfect your formulations before expanding.</p>
-        
-        <h3>Consider White Label to Start</h3>
-        <p>While custom formulations are ideal, starting with white label or private label products can significantly reduce R&D costs and minimum order quantities. You can transition to custom formulations as your brand grows.</p>
-        
-        <h3>Leverage Digital Marketing</h3>
-        <p>Focus on low-cost, high-impact digital marketing strategies:</p>
-        <ul>
-          <li>Build an engaged Instagram community</li>
-          <li>Partner with micro-influencers for authentic promotion</li>
-          <li>Create valuable content that positions you as an industry expert</li>
-          <li>Utilize email marketing for direct customer communication</li>
-        </ul>
-        
-        <h3>Start Direct-to-Consumer</h3>
-        <p>Selling directly to consumers through your website gives you higher margins than wholesale. Platforms like Shopify make it affordable to set up a professional e-commerce store.</p>
-        
-        <h3>Smart Packaging Choices</h3>
-        <p>Packaging is crucial for beauty products but can be expensive. Look for stock packaging options that can be customized with labels and secondary packaging to reduce mold costs while maintaining a premium look.</p>
-      `
+  const filteredArticles = articles.filter(article => {
+    // Category filter
+    if (activeCategory !== 'all' && article.category !== activeCategory) {
+      return false;
     }
-  ];
-
-  // Fix around line 229 where the error is occurring
-  // First, ensure displayArticles is always an array
-  const filteredArticles = Array.isArray(displayArticles) 
-    ? displayArticles.filter(article => {
-        // Category filter
-        if (activeCategory !== 'all' && article.category !== activeCategory) {
-          return false;
-        }
-        
-        // Search filter
-        if (searchQuery && !article.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-          return false;
-        }
-        
-        return true;
-      })
-    : [];
+    
+    // Search filter
+    if (searchQuery && !article.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    return true;
+  });
 
   const toggleArticleExpansion = (articleId) => {
     setExpandedArticles({
@@ -372,8 +198,24 @@ const ArticlesIndex = () => {
                   <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">No articles found</h3>
-                  <p className="text-gray-500">Try changing your filters or search criteria.</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">No articles available</h3>
+                  <p className="text-gray-500 mb-4">We couldn't find any articles that match your current filters.</p>
+                  {activeCategory !== 'all' || searchQuery ? (
+                    <button 
+                      onClick={() => {
+                        setActiveCategory('all');
+                        setSearchQuery('');
+                      }}
+                      className="inline-flex items-center px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Clear filters
+                    </button>
+                  ) : (
+                    <p className="text-sm text-gray-500">New articles will be added soon!</p>
+                  )}
                 </div>
               )}
             </div>
@@ -415,7 +257,7 @@ const ArticlesIndex = () => {
                       >
                         <span>{category.name}</span>
                         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                          {displayArticles.filter(article => article.category === category.id).length}
+                          {articles.filter(article => article.category === category.id).length}
                         </span>
                       </button>
                     </li>
@@ -426,29 +268,35 @@ const ArticlesIndex = () => {
               {/* Popular Posts */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Popular Articles</h3>
-                <div className="space-y-4">
-                  {displayArticles.slice(0, 3).map((article) => (
-                    <Link 
-                      key={article._id || article.id} 
-                      to={`/articles/${article._id || article.id}`}
-                      className="flex items-start space-x-3 group w-full text-left"
-                    >
-                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                        <img 
-                          src={article.image} 
-                          alt={article.title}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900 group-hover:text-[#363a94] transition-colors line-clamp-2">
-                    {article.title}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-1">{article.date}</p>
-                      </div>
-                  </Link>
-                  ))}
-                </div>
+                {articles.length > 0 ? (
+                  <div className="space-y-4">
+                    {articles.slice(0, 3).map((article) => (
+                      <Link 
+                        key={article._id || article.id} 
+                        to={`/articles/${article._id || article.id}`}
+                        className="flex items-start space-x-3 group w-full text-left"
+                      >
+                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                          <img 
+                            src={article.image} 
+                            alt={article.title}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                          />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 group-hover:text-[#363a94] transition-colors line-clamp-2">
+                            {article.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">{article.date}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 text-sm">No articles available yet</p>
+                  </div>
+                )}
               </div>
 
               {/* Newsletter Signup */}

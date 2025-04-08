@@ -103,7 +103,7 @@ const ArticleDetail = () => {
   };
 
   // Use full URL when sharing articles - changed to use frontend domain
-  const shareUrl = `https://blcp.vercel.app/articles/${article._id}`;
+  const shareUrl = `${window.location.origin}/articles/${article._id}`;
 
   return (
     <div className="bg-white">
