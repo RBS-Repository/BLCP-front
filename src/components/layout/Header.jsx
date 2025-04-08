@@ -314,7 +314,7 @@ const Header = () => {
     },
     {
       title: 'Services',
-      path: '/services',
+      path: '#', // Changed from '/services' to '#' to make it not navigate
       dropdown: [
         {
           title: 'OEM Manufacturing',
@@ -657,7 +657,7 @@ const Header = () => {
 
                     {/* Mega menu for Services */}
                     {item.title === 'Services' && (
-                      <div className="grid grid-cols-2 gap-6 p-6">
+                      <div className="p-6">
                         <div>
                           <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">
                             Our Services
@@ -675,48 +675,6 @@ const Header = () => {
                               </li>
                             ))}
                           </ul>
-                          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-                            <h4 className="font-medium text-blue-800 mb-1">New Client Special</h4>
-                            <p className="text-xs text-gray-600 mb-2">
-                              Get a consultation and personalized treatment plan free with your first order.
-                            </p>
-                            <Link 
-                              to="/contact"
-                              className="inline-block text-xs font-medium text-blue-600 hover:text-blue-700"
-                            >
-                              Learn more →
-                            </Link>
-                          </div>
-                        </div>
-                        <div className="border-l border-gray-100 pl-6">
-                          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">
-                            Featured Service
-                          </h3>
-                          <div className="relative rounded-lg overflow-hidden">
-                            <img
-                              src="/images/oem-feature.jpg"
-                              alt="OEM Manufacturing"
-                              className="w-full h-40 object-cover"
-                              onError={(e) => {
-                                  e.target.src = '/images/placeholder.jpg';
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
-                              <h4 className="text-white font-medium">OEM Manufacturing</h4>
-                              <p className="text-xs text-white/80">Custom formulations with your branding</p>
-                            </div>
-                          </div>
-                          <div className="mt-4">
-                            <Link
-                              to="/services/oem"
-                              className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
-                            >
-                              Explore OEM Services
-                              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                            </Link>
-                          </div>
                         </div>
                       </div>
                     )}
@@ -1736,7 +1694,7 @@ const Header = () => {
                               <>
                                 <button
                                   className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium ${
-                            location.pathname === item.path
+                                    location.pathname === item.path && item.path !== '#'
                                       ? 'text-blue-600'
                                       : 'text-gray-700'
                                   }`}
