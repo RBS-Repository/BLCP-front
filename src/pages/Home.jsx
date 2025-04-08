@@ -1102,50 +1102,19 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Schedule Consultation Banner */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#363a94] to-purple-600 text-white">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center"
-            >
-              <h2 className="text-3xl font-bold mb-4">Ready for a Beauty Consultation?</h2>
-              <p className="text-xl text-white/90 max-w-2xl mx-auto mb-8">
-                Get personalized product recommendations from our beauty experts
-              </p>
-              <Link 
-                to="/schedule" 
-                className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-[#363a94] bg-white hover:bg-gray-100 shadow-lg transition-colors duration-300"
-              >
-                Schedule Your Consultation
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5 ml-2" 
-                  viewBox="0 0 20 20" 
-                  fill="#363a94"
-                >
-                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </Link>
-            </motion.div>
-          </div>
-        </section>
-
+        
         {/* Benefits Section */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="md:flex items-center gap-12">
-              <div className="md:w-1/2 mb-10 md:mb-0">
+            <div className="md:flex items-center justify-center">
+              <div className="w-full">
                 <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                 >
-                  <h2 className="text-3xl font-bold text-[#363a94] mb-6">Why Choose BLCP Solutions?</h2>
-                  <div className="space-y-6">
+                  <h2 className="text-3xl font-bold text-[#363a94] mb-6 text-center">Why Choose BLCP Solutions?</h2>
+                  <div className="max-w-3xl mx-auto space-y-6">
                     <div className="flex items-start">
                       <div className="flex-shrink-0 mt-1">
                         <div className="w-6 h-6 rounded-full bg-[#363a94] flex items-center justify-center text-white text-xs font-bold">1</div>
@@ -1178,56 +1147,298 @@ const Home = () => {
                   </div>
                 </motion.div>
               </div>
-              
-              <div className="md:w-1/2">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  className="rounded-xl overflow-hidden shadow-lg"
-                >
-                  <img 
-                    src={oxyjetTreatment} 
-                    alt="BLCP Treatment" 
-                    className="w-full h-auto"
-                  />
-                </motion.div>
-              </div>
             </div>
           </div>
         </section>
 
-        {/* Promotional Banner */}
-        <section className="py-16 bg-indigo-600 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
-            <img 
-              src={oxyjetTreatment} 
-              alt="Background" 
-              className="w-full h-full object-cover"
-            />
-          </div>
+        {/* Featured Products Promotion */}
+        <section className="py-16 bg-white relative overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="md:flex items-center justify-between">
-              <div className="md:w-1/2 mb-8 md:mb-0">
-                <h2 className="text-3xl font-bold text-white mb-4">OxyJet Professional Series</h2>
-                <p className="text-xl text-indigo-100 mb-8">
-                  Discover our professional-grade treatments with advanced Korean technology
-                </p>
-                <Link 
-                  to="/services/treatments"
-                  className="inline-block px-8 py-4 bg-white text-indigo-600 font-bold rounded-full hover:bg-indigo-50 transition-colors"
-                >
-                  Learn More
-                </Link>
-              </div>
-              <div className="md:w-1/3">
-                <img 
-                  src={oxyjetTreatment} 
-                  alt="OxyJet Treatment" 
-                  className="rounded-lg shadow-xl"
-                />
-              </div>
+            <div className="text-center mb-6">
+              <motion.h2 
+                className="text-2xl font-bold text-gray-900 mb-2"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                Featured Product Lines
+              </motion.h2>
             </div>
+            
+            {/* Enhanced Mosaic/Bento Grid Layout */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 mb-8">
+              {/* Row 1 */}
+              {/* Large Featured Product - First Row Span 2 */}
+              <motion.div 
+                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-red-500"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=oxyjet">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/we-peep-and-hibiscus-beauty-product-cosmetics-ad-template-0srugaa126f192.webp" 
+                      alt="OxyJet Professional Series" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* Cell Repair - First Row */}
+              <motion.div 
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-200"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=cell-repair">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://i.pinimg.com/736x/f1/48/a0/f148a004dc4ec95e9db97fd7ba6f97b1.jpg"
+                      alt="Cell Repair Boost" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* PDRN Therapy - First Row */}
+              <motion.div 
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-600"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=pdrn">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://roiminds-1e808.kxcdn.com/wp-content/uploads/2023/05/Lancome.png" 
+                      alt="PDRN Therapy" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* Row 2 - Additional Elements */}
+              
+              {/* Skincare - Start of Row 2 */}
+              <motion.div 
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-blue-500"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=skincare">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://png.pngtree.com/png-clipart/20200226/original/pngtree-cosmetics-product-ads-poster-template-beauty-cosmetic-png-image_5313505.jpg" 
+                      alt="Skincare Collection" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* 2x1 Horizontal - Spans across Row 2 */}
+              <motion.div 
+                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-amber-100"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=professional">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://brentonway.com/wp-content/uploads/2024/02/image-26.png"
+                      alt="Professional Products" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* Row 3 */}
+              
+              {/* Small Box - Row 3 */}
+              <motion.div 
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-indigo-100"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.6 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=essentials">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://cdn.confect.io/uploads/media/271855174_1031068707751720_4161178570420835579_n%20-%20Copy.jpg"
+                      alt="Essential Products" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* Medium Box - Row 3 */}
+              <motion.div 
+                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-800 sm:hidden md:block"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.7 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=treatments">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://d1csarkz8obe9u.cloudfront.net/posterpreviews/luxury-beauty-product-template-design-802d996d24722d52590b6fba98a4bc66_screen.jpg?ts=1645416275"
+                      alt="Spa Treatments" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* Large Box - Spans Rows 3-4 */}
+              <motion.div 
+                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-amber-700 hidden md:block"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.8 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=sets">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/kobi-and-jazzberry-jam-skin-care-ad-template-zp0mrfa126f192.webp" 
+                      alt="Skincare Sets" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* New Box - Vertical Rectangle */}
+              <motion.div 
+                className="col-span-1 row-span-2 rounded-lg shadow-sm overflow-hidden bg-purple-100 hidden md:block"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.85 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=premium">
+                  <div className="relative h-full">
+                    <img 
+                      src="https://marketplace.canva.com/EAF3o7BdLno/2/0/1131w/canva-white-and-pink-skincare-product-flyer-Zq-VceMZmOw.jpg"
+                      alt="Premium Collection" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              {/* Row 4 - mobile only */}
+              <motion.div 
+                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.9 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=natural">
+                  <div className="relative h-full">
+                    <img 
+                      src={hero5} 
+                      alt="Natural Products" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+              
+              <motion.div 
+                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 1.0 }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Link to="/products?category=kits">
+                  <div className="relative h-full">
+                    <img 
+                      src={hero4} 
+                      alt="Beauty Kits" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </Link>
+              </motion.div>
+            </div>
+            
+            <div className="text-center mt-8">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link 
+                  to="/products"
+                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-[#363a94] to-indigo-600 text-white font-bold rounded-lg hover:shadow-lg transition-all duration-300 shadow-md"
+                >
+                  Explore All Products
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                  </svg>
+                </Link>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+{/* Schedule Consultation Banner */}
+<section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#363a94] text-white">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center"
+            >
+              <h2 className="text-3xl font-bold mb-4">Ready for a Beauty Consultation?</h2>
+              <p className="text-xl text-white/90 max-w-2xl mx-auto mb-8">
+                Get personalized product recommendations from our beauty experts
+              </p>
+              <Link 
+                to="/schedule" 
+                className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-[#363a94] bg-white hover:bg-gray-100 shadow-lg transition-colors duration-300"
+              >
+                Schedule Your Consultation
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-5 w-5 ml-2" 
+                  viewBox="0 0 20 20" 
+                  fill="#363a94"
+                >
+                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </Link>
+            </motion.div>
           </div>
         </section>
 
@@ -1251,7 +1462,7 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Testimonials */}
+        {/* Testimonials 
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Parallax speed={10}>
@@ -1359,34 +1570,8 @@ const Home = () => {
             </div>
           </div>
         </section>
-
-        {/* Newsletter Section */}
-        <section className="py-16 bg-[#363a94]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-4">Join Our Newsletter</h2>
-              <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-                Subscribe to get updates on new products, special offers, and skincare tips!
-              </p>
-              <form onSubmit={handleNewsletterSubmit} className="max-w-md mx-auto flex">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email address"
-                  className="flex-grow px-4 py-3 rounded-l-lg focus:outline-none"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-[#2a2d73] hover:bg-[#1f225e] text-white font-bold px-6 py-3 rounded-r-lg transition-colors"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
-          </div>
-        </section>
+*/}
+    
       </div>
     </ParallaxProvider>
   );

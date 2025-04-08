@@ -59,17 +59,17 @@ const ArticlesIndex = () => {
   ];
   
   const filteredArticles = articles.filter(article => {
-    // Category filter
-    if (activeCategory !== 'all' && article.category !== activeCategory) {
-      return false;
-    }
-    
-    // Search filter
-    if (searchQuery && !article.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    
-    return true;
+        // Category filter
+        if (activeCategory !== 'all' && article.category !== activeCategory) {
+          return false;
+        }
+        
+        // Search filter
+        if (searchQuery && !article.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+          return false;
+        }
+        
+        return true;
   });
 
   const toggleArticleExpansion = (articleId) => {
@@ -269,29 +269,29 @@ const ArticlesIndex = () => {
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Popular Articles</h3>
                 {articles.length > 0 ? (
-                  <div className="space-y-4">
+                <div className="space-y-4">
                     {articles.slice(0, 3).map((article) => (
-                      <Link 
-                        key={article._id || article.id} 
-                        to={`/articles/${article._id || article.id}`}
-                        className="flex items-start space-x-3 group w-full text-left"
-                      >
-                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                          <img 
-                            src={article.image} 
-                            alt={article.title}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                          />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 group-hover:text-[#363a94] transition-colors line-clamp-2">
-                            {article.title}
-                          </h4>
-                          <p className="text-xs text-gray-500 mt-1">{article.date}</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                    <Link 
+                      key={article._id || article.id} 
+                      to={`/articles/${article._id || article.id}`}
+                      className="flex items-start space-x-3 group w-full text-left"
+                    >
+                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                        <img 
+                          src={article.image} 
+                          alt={article.title}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 group-hover:text-[#363a94] transition-colors line-clamp-2">
+                    {article.title}
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-1">{article.date}</p>
+                      </div>
+                  </Link>
+                  ))}
+                </div>
                 ) : (
                   <div className="text-center py-4">
                     <p className="text-gray-500 text-sm">No articles available yet</p>
