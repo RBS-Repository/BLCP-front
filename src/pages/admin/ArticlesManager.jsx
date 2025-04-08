@@ -199,42 +199,35 @@ const ArticlesManager = () => {
       console.log('Saving article with data:', articleData);
       
       let response;
+      let url = isEditing && selectedArticle 
+        ? `${import.meta.env.VITE_API_BASE_URL}/articles/${selectedArticle._id}`
+        : `${import.meta.env.VITE_API_BASE_URL}/articles`;
       
-      if (isEditing && selectedArticle) {
-        // Update existing article
-        response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles/${selectedArticle._id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(articleData)
-        });
-        
-        toast.success('Article updated successfully');
-      } else {
-        // Create new article
-        const formData = new FormData();
-        formData.append('title', articleData.title);
-        formData.append('excerpt', articleData.excerpt);
-        formData.append('content', articleData.content);
-        formData.append('category', articleData.category);
-        formData.append('image', articleData.image);
-        formData.append('featured', articleData.featured);
-        formData.append('readTime', articleData.readTime);
-        
-        response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/articles`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData
-        });
-        
-        toast.success('Article created successfully');
+      let method = isEditing && selectedArticle ? 'PUT' : 'POST';
+      
+      response = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(articleData)
+      });
+      
+      console.log('Response status:', response.status);
+      
+      // Check if response is ok (status in the range 200-299)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error data:', errorData);
+        throw new Error(errorData.message || `Server returned ${response.status}: ${response.statusText}`);
       }
       
-      console.log('Response:', response);
+      // Parse the response data
+      const responseData = await response.json().catch(() => ({}));
+      console.log('Response data:', responseData);
+      
+      toast.success(isEditing ? 'Article updated successfully' : 'Article created successfully');
       
       // Reset form and refresh articles list
       resetForm();
@@ -245,14 +238,8 @@ const ArticlesManager = () => {
       console.error('Error saving article:', error);
       
       // Extract more detailed error information
-      const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
+      const errorMessage = error.message || 'Unknown error occurred';
       toast.error(`Failed to save article: ${errorMessage}`);
-      
-      // Log detailed error information for debugging
-      if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
-      }
     } finally {
       setSaving(false);
     }
