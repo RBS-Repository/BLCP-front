@@ -1158,7 +1158,7 @@ const Home = () => {
           <div className="max-w-7x5 mx-auto px-4 sm:px-6 lg:px-8 relative flex flex-col items-center">
             <div className="text-center mb-8 w-full">
               <motion.h2  
-                className="text-2xl md:text-3xl font-bold text-gray-900 mb-2"
+                className="text-3xl md:text-3xl font-bold text-gray-900 mb-4 right-14"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -1168,7 +1168,7 @@ const Home = () => {
             </div>
             
             {/* Enhanced Mosaic/Bento Grid Layout */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-8 w-full max-w-5xl mx-auto">
+            <div className="grid  sm:grid-cols-4 md:grid-cols-6 gap-3 mb-8 w-full max-w-7xl mx-auto left-28">
               {/* Row 1 */}
               {/* Large Featured Product - First Row Span 2 */}
                 <motion.div
