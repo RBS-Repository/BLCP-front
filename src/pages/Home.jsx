@@ -413,6 +413,8 @@ const Home = () => {
   const { user } = useAuth();
   const isEmailVerified = user ? user.emailVerified : false;
 
+  const [expandedImage, setExpandedImage] = useState(null);
+
   return (
     <ParallaxProvider>
       <Helmet>
@@ -1102,7 +1104,7 @@ const Home = () => {
           </div>
         </section>
 
-        
+
         {/* Benefits Section */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1151,12 +1153,12 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Featured Products Promotion */}
-        <section className="py-16 bg-white relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="text-center mb-6">
-              <motion.h2 
-                className="text-2xl font-bold text-gray-900 mb-2"
+        {/* Featured Product Lines Section */}
+        <section className="py-24 w-full left-28 bg-white relative overflow-hidden">
+          <div className="max-w-7x5 mx-auto px-4 sm:px-6 lg:px-8 relative flex flex-col items-center">
+            <div className="text-center mb-8 w-full">
+              <motion.h2  
+                className="text-2xl md:text-3xl font-bold text-gray-900 mb-2"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -1166,229 +1168,251 @@ const Home = () => {
             </div>
             
             {/* Enhanced Mosaic/Bento Grid Layout */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-8 w-full max-w-5xl mx-auto">
               {/* Row 1 */}
               {/* Large Featured Product - First Row Span 2 */}
-              <motion.div 
-                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-red-500"
+                <motion.div
+                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-red-500 cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                  viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/we-peep-and-hibiscus-beauty-product-cosmetics-ad-template-0srugaa126f192.webp",
+                  alt: "OxyJet Professional Series"
+                })}
               >
-                <Link to="/products?category=oxyjet">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/we-peep-and-hibiscus-beauty-product-cosmetics-ad-template-0srugaa126f192.webp" 
-                      alt="OxyJet Professional Series" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
-              </motion.div>
+                <div className="relative h-full">
+                  <img 
+                    src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/we-peep-and-hibiscus-beauty-product-cosmetics-ad-template-0srugaa126f192.webp" 
+                    alt="OxyJet Professional Series" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                </motion.div>
               
               {/* Cell Repair - First Row */}
               <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-200"
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-200 cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://i.pinimg.com/736x/f1/48/a0/f148a004dc4ec95e9db97fd7ba6f97b1.jpg",
+                  alt: "Cell Repair Boost"
+                })}
               >
-                <Link to="/products?category=cell-repair">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://i.pinimg.com/736x/f1/48/a0/f148a004dc4ec95e9db97fd7ba6f97b1.jpg"
-                      alt="Cell Repair Boost" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://i.pinimg.com/736x/f1/48/a0/f148a004dc4ec95e9db97fd7ba6f97b1.jpg"
+                    alt="Cell Repair Boost" 
+                    className="w-full h-full object-cover"
+                  />
+              </div>
               </motion.div>
               
               {/* PDRN Therapy - First Row */}
               <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-600"
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-600 cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://roiminds-1e808.kxcdn.com/wp-content/uploads/2023/05/Lancome.png",
+                  alt: "PDRN Therapy"
+                })}
               >
-                <Link to="/products?category=pdrn">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://roiminds-1e808.kxcdn.com/wp-content/uploads/2023/05/Lancome.png" 
-                      alt="PDRN Therapy" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://roiminds-1e808.kxcdn.com/wp-content/uploads/2023/05/Lancome.png" 
+                    alt="PDRN Therapy" 
+                    className="w-full h-full object-cover"
+                  />
+            </div>
               </motion.div>
               
               {/* Row 2 - Additional Elements */}
               
               {/* Skincare - Start of Row 2 */}
               <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-blue-500"
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-blue-500 cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://png.pngtree.com/png-clipart/20200226/original/pngtree-cosmetics-product-ads-poster-template-beauty-cosmetic-png-image_5313505.jpg",
+                  alt: "Skincare Collection"
+                })}
               >
-                <Link to="/products?category=skincare">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://png.pngtree.com/png-clipart/20200226/original/pngtree-cosmetics-product-ads-poster-template-beauty-cosmetic-png-image_5313505.jpg" 
-                      alt="Skincare Collection" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://png.pngtree.com/png-clipart/20200226/original/pngtree-cosmetics-product-ads-poster-template-beauty-cosmetic-png-image_5313505.jpg" 
+                    alt="Skincare Collection" 
+                    className="w-full h-full object-cover"
+                  />
+          </div>
               </motion.div>
               
               {/* 2x1 Horizontal - Spans across Row 2 */}
               <motion.div 
-                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-amber-100"
+                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-amber-100 cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.5 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://brentonway.com/wp-content/uploads/2024/02/image-26.png",
+                  alt: "Professional Products"
+                })}
               >
-                <Link to="/products?category=professional">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://brentonway.com/wp-content/uploads/2024/02/image-26.png"
-                      alt="Professional Products" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://brentonway.com/wp-content/uploads/2024/02/image-26.png"
+                    alt="Professional Products" 
+              className="w-full h-full object-cover"
+            />
+          </div>
               </motion.div>
               
               {/* Row 3 */}
               
               {/* Small Box - Row 3 */}
               <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-indigo-100"
+                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-indigo-100 cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.6 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://cdn.confect.io/uploads/media/271855174_1031068707751720_4161178570420835579_n%20-%20Copy.jpg",
+                  alt: "Essential Products"
+                })}
               >
-                <Link to="/products?category=essentials">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://cdn.confect.io/uploads/media/271855174_1031068707751720_4161178570420835579_n%20-%20Copy.jpg"
-                      alt="Essential Products" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://cdn.confect.io/uploads/media/271855174_1031068707751720_4161178570420835579_n%20-%20Copy.jpg"
+                    alt="Essential Products" 
+                    className="w-full h-full object-cover"
+                  />
+              </div>
               </motion.div>
               
               {/* Medium Box - Row 3 */}
               <motion.div 
-                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-800 sm:hidden md:block"
+                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-800 sm:hidden md:block cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.7 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/luxury-beauty-product-template-design-802d996d24722d52590b6fba98a4bc66_screen.jpg?ts=1645416275",
+                  alt: "Spa Treatments"
+                })}
               >
-                <Link to="/products?category=treatments">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://d1csarkz8obe9u.cloudfront.net/posterpreviews/luxury-beauty-product-template-design-802d996d24722d52590b6fba98a4bc66_screen.jpg?ts=1645416275"
-                      alt="Spa Treatments" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://d1csarkz8obe9u.cloudfront.net/posterpreviews/luxury-beauty-product-template-design-802d996d24722d52590b6fba98a4bc66_screen.jpg?ts=1645416275"
+                    alt="Spa Treatments" 
+                    className="w-full h-full object-cover"
+                />
+              </div>
               </motion.div>
               
               {/* Large Box - Spans Rows 3-4 */}
               <motion.div 
-                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-amber-700 hidden md:block"
+                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-amber-700 hidden md:block cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.8 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/kobi-and-jazzberry-jam-skin-care-ad-template-zp0mrfa126f192.webp",
+                  alt: "Skincare Sets"
+                })}
               >
-                <Link to="/products?category=sets">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/kobi-and-jazzberry-jam-skin-care-ad-template-zp0mrfa126f192.webp" 
-                      alt="Skincare Sets" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/kobi-and-jazzberry-jam-skin-care-ad-template-zp0mrfa126f192.webp" 
+                    alt="Skincare Sets" 
+                    className="w-full h-full object-cover"
+                  />
+            </div>
               </motion.div>
               
               {/* New Box - Vertical Rectangle */}
               <motion.div 
-                className="col-span-1 row-span-2 rounded-lg shadow-sm overflow-hidden bg-purple-100 hidden md:block"
+                className="col-span-1 row-span-2 rounded-lg shadow-sm overflow-hidden bg-purple-100 hidden md:block cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.85 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: "https://marketplace.canva.com/EAF3o7BdLno/2/0/1131w/canva-white-and-pink-skincare-product-flyer-Zq-VceMZmOw.jpg",
+                  alt: "Premium Collection"
+                })}
               >
-                <Link to="/products?category=premium">
-                  <div className="relative h-full">
-                    <img 
-                      src="https://marketplace.canva.com/EAF3o7BdLno/2/0/1131w/canva-white-and-pink-skincare-product-flyer-Zq-VceMZmOw.jpg"
-                      alt="Premium Collection" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src="https://marketplace.canva.com/EAF3o7BdLno/2/0/1131w/canva-white-and-pink-skincare-product-flyer-Zq-VceMZmOw.jpg"
+                    alt="Premium Collection" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </motion.div>
               
               {/* Row 4 - mobile only */}
               <motion.div 
-                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden"
+                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.9 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: hero5,
+                  alt: "Natural Products"
+                })}
               >
-                <Link to="/products?category=natural">
-                  <div className="relative h-full">
-                    <img 
-                      src={hero5} 
-                      alt="Natural Products" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src={hero5} 
+                    alt="Natural Products" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </motion.div>
               
               <motion.div 
-                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden"
+                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 1.0 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+                onClick={() => setExpandedImage({
+                  src: hero4,
+                  alt: "Beauty Kits"
+                })}
               >
-                <Link to="/products?category=kits">
-                  <div className="relative h-full">
-                    <img 
-                      src={hero4} 
-                      alt="Beauty Kits" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+                <div className="relative h-full">
+                  <img 
+                    src={hero4} 
+                    alt="Beauty Kits" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </motion.div>
             </div>
             
@@ -1409,6 +1433,39 @@ const Home = () => {
               </motion.div>
             </div>
           </div>
+          
+          {/* Image Expansion Modal */}
+          {expandedImage && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-80 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm"
+              onClick={() => setExpandedImage(null)}
+            >
+              <motion.div 
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center"
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the content
+              >
+                <button 
+                  onClick={() => setExpandedImage(null)}
+                  className="absolute top-0 right-0 bg-white rounded-full p-2 shadow-lg transform translate-x-1/2 -translate-y-1/2 z-10 hover:bg-gray-100 transition-colors"
+                  aria-label="Close image"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <img 
+                  src={expandedImage.src} 
+                  alt={expandedImage.alt} 
+                  className="max-h-[85vh] max-w-full w-auto h-auto rounded-lg shadow-2xl object-contain bg-white p-1"
+                />
+              </motion.div>
+            </motion.div>
+          )}
         </section>
 {/* Schedule Consultation Banner */}
 <section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#363a94] text-white">

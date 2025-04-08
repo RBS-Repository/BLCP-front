@@ -12,6 +12,7 @@ const ArticleDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [relatedArticles, setRelatedArticles] = useState([]);
+  const [categories, setCategories] = useState([]);
   const contentRef = useRef(null);
   
   // Fetch article on component mount
@@ -41,6 +42,30 @@ const ArticleDetail = () => {
         
         // For now, just set empty related articles to avoid API calls
         setRelatedArticles([]);
+        
+        // Fetch all articles to extract categories
+        try {
+          const allArticlesResponse = await api.get('/articles');
+          if (Array.isArray(allArticlesResponse.data) && allArticlesResponse.data.length > 0) {
+            // Extract unique categories
+            const uniqueCategories = [...new Set(allArticlesResponse.data.map(article => article.category))];
+            // Format them into objects
+            const formattedCategories = uniqueCategories.map(category => ({
+              id: category,
+              name: formatCategory(category)
+            }));
+            setCategories(formattedCategories);
+          }
+        } catch (categoriesError) {
+          console.warn('Could not load categories:', categoriesError);
+          // Fallback to default categories if needed
+          setCategories([
+            { id: 'skincare', name: 'Skincare' },
+            { id: 'manufacturing', name: 'Manufacturing' },
+            { id: 'compliance', name: 'Compliance' },
+            { id: 'business', name: 'Business' }
+          ]);
+        }
         
       } catch (error) {
         console.error('Error fetching article:', error);
@@ -97,13 +122,45 @@ const ArticleDetail = () => {
     day: 'numeric'
   });
   
-  // Format category
+  // Format category - capitalize each word in the category
   const formatCategory = (category) => {
-    return category.charAt(0).toUpperCase() + category.slice(1);
+    if (!category) return '';
+    return category
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   // Use full URL when sharing articles - changed to use frontend domain
   const shareUrl = `${window.location.origin}/articles/${article._id}`;
+
+  // Get category color class by category ID (similar to ArticlesManager.jsx)
+  const getCategoryColorClass = (categoryId) => {
+    switch(categoryId) {
+      case 'skincare':
+        return 'bg-pink-100 text-pink-800';
+      case 'manufacturing':
+        return 'bg-blue-100 text-blue-800';
+      case 'compliance':
+        return 'bg-purple-100 text-purple-800';
+      case 'business':
+        return 'bg-green-100 text-green-800';
+      default:
+        // Generate a consistent color based on the category string
+        const colors = [
+          'bg-amber-100 text-amber-800',
+          'bg-emerald-100 text-emerald-800',
+          'bg-cyan-100 text-cyan-800',
+          'bg-indigo-100 text-indigo-800',
+          'bg-fuchsia-100 text-fuchsia-800',
+          'bg-rose-100 text-rose-800'
+        ];
+        
+        // Use the sum of character codes to select a color consistently
+        const charSum = categoryId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        return colors[charSum % colors.length] || 'bg-indigo-100 text-indigo-800';
+    }
+  };
 
   return (
     <div className="bg-white">
@@ -127,7 +184,7 @@ const ArticleDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 mb-4">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getCategoryColorClass(article.category)} mb-4`}>
               {formatCategory(article.category)}
             </span>
           </motion.div>
@@ -303,19 +360,27 @@ const ArticleDetail = () => {
             <div className="bg-white rounded-2xl shadow-md p-8 mb-10">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Categories</h3>
               <div className="space-y-2">
-                {['skincare', 'manufacturing', 'compliance', 'industry', 'trends'].map(category => (
+                {categories.map(category => (
                   <Link 
-                    key={category}
-                    to={`/articles?category=${category}`}
+                    key={category.id}
+                    to={`/articles?category=${category.id}`}
                     className={`block px-4 py-2 rounded-lg transition-colors ${
-                      article.category === category 
+                      article.category === category.id 
                         ? 'bg-indigo-100 text-indigo-700 font-medium' 
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                    {category.name}
                   </Link>
                 ))}
+                
+                {/* All Articles link at the bottom */}
+                <Link 
+                  to="/articles"
+                  className="block px-4 py-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-100 mt-4 border-t border-gray-100 pt-4"
+                >
+                  All Articles
+                </Link>
               </div>
             </div>
           </motion.div>
@@ -349,7 +414,7 @@ const ArticleDetail = () => {
                       </div>
                       <div className="p-6 flex-grow flex flex-col">
                         <div className="flex items-center text-xs text-gray-500 mb-3">
-                          <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-600 rounded-full mr-2">
+                          <span className={`inline-block px-2 py-1 ${getCategoryColorClass(related.category)} rounded-full mr-2`}>
                             {formatCategory(related.category)}
                           </span>
                           <span>{new Date(related.createdAt).toLocaleDateString()}</span>

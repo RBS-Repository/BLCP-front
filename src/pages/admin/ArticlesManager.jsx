@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { FaNewspaper, FaPencilAlt, FaTrash, FaCheck, FaTimes, FaExternalLinkAlt, FaPlus, FaSave, FaEye, FaClock, FaStar } from 'react-icons/fa';
+import { FaNewspaper, FaPencilAlt, FaTrash, FaCheck, FaTimes, FaExternalLinkAlt, FaPlus, FaSave, FaEye, FaClock, FaStar, FaTags } from 'react-icons/fa';
 
 const ArticlesManager = () => {
   const navigate = useNavigate();
@@ -17,6 +17,8 @@ const ArticlesManager = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -85,6 +87,22 @@ const ArticlesManager = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
+
+    // Reset custom category when the category select changes
+    if (name === 'category' && value !== 'custom') {
+      setIsCustomCategory(false);
+    } else if (name === 'category' && value === 'custom') {
+      setIsCustomCategory(true);
+    }
+  };
+
+  const handleCustomCategoryChange = (e) => {
+    setCustomCategory(e.target.value);
+    // Update formData with the custom category value
+    setFormData({
+      ...formData,
+      category: e.target.value
+    });
   };
   
   const handleContentChange = (value) => {
@@ -96,6 +114,14 @@ const ArticlesManager = () => {
   
   const handleEdit = (article) => {
     setSelectedArticle(article);
+    
+    // Check if the article has a custom category
+    const isCustom = !categories.some(cat => cat.id === article.category);
+    setIsCustomCategory(isCustom);
+    if (isCustom) {
+      setCustomCategory(article.category);
+    }
+    
     setFormData({
       title: article.title,
       excerpt: article.excerpt,
@@ -119,12 +145,16 @@ const ArticlesManager = () => {
       featured: false,
       readTime: '5 min read'
     });
+    setIsCustomCategory(false);
+    setCustomCategory('');
     setIsEditing(true);
   };
   
   const handleCancel = () => {
     setIsEditing(false);
     setSelectedArticle(null);
+    setIsCustomCategory(false);
+    setCustomCategory('');
   };
   
   const validateForm = () => {
@@ -144,6 +174,10 @@ const ArticlesManager = () => {
       toast.error('Image URL is required');
       return false;
     }
+    if (isCustomCategory && !customCategory.trim()) {
+      toast.error('Custom category name is required');
+      return false;
+    }
     return true;
   };
   
@@ -157,33 +191,22 @@ const ArticlesManager = () => {
       featured: false,
       readTime: '5 min read'
     });
+    setIsCustomCategory(false);
+    setCustomCategory('');
   };
   
   const saveArticle = async () => {
     // Validate required fields
-    if (!formData.title.trim()) {
-      toast.error('Title is required');
-      return;
-    }
-    
-    if (!formData.excerpt.trim()) {
-      toast.error('Excerpt is required');
-      return;
-    }
-    
-    if (!formData.content.trim()) {
-      toast.error('Content is required');
-      return;
-    }
-    
-    if (!formData.category) {
-      toast.error('Category is required');
+    if (!validateForm()) {
       return;
     }
     
     try {
       setSaving(true);
       const token = await user.getIdToken();
+      
+      // Get the final category value
+      const finalCategory = isCustomCategory ? customCategory.trim() : formData.category;
       
       // Prepare the article data
       const articleData = {
@@ -192,7 +215,7 @@ const ArticlesManager = () => {
         title: formData.title.trim(),
         excerpt: formData.excerpt.trim(),
         content: formData.content,
-        category: formData.category,
+        category: finalCategory,
         image: formData.image || 'https://via.placeholder.com/800x400?text=Article+Image'
       };
       
@@ -275,7 +298,7 @@ const ArticlesManager = () => {
   // Get category name by ID
   const getCategoryName = (categoryId) => {
     const category = categories.find(cat => cat.id === categoryId);
-    return category ? category.name : categoryId;
+    return category ? category.name : categoryId.charAt(0).toUpperCase() + categoryId.slice(1);
   };
   
   // Get category color class by ID
@@ -290,7 +313,19 @@ const ArticlesManager = () => {
       case 'business':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        // Generate a consistent color based on the category string
+        const colors = [
+          'bg-amber-100 text-amber-800',
+          'bg-emerald-100 text-emerald-800',
+          'bg-cyan-100 text-cyan-800',
+          'bg-indigo-100 text-indigo-800',
+          'bg-fuchsia-100 text-fuchsia-800',
+          'bg-rose-100 text-rose-800'
+        ];
+        
+        // Use the sum of character codes to select a color consistently
+        const charSum = categoryId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        return colors[charSum % colors.length] || 'bg-gray-100 text-gray-800';
     }
   };
   
@@ -392,23 +427,46 @@ const ArticlesManager = () => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <select
-                          name="category"
-                          value={formData.category}
-                          onChange={handleInputChange}
-                          className="w-full p-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm appearance-none"
-                        >
-                          {categories.map(category => (
-                            <option key={category.id} value={category.id}>{category.name}</option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
-                          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                          </svg>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <select
+                            name="category"
+                            value={isCustomCategory ? 'custom' : formData.category}
+                            onChange={handleInputChange}
+                            className="w-full p-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm appearance-none"
+                          >
+                            {categories.map(category => (
+                              <option key={category.id} value={category.id}>{category.name}</option>
+                            ))}
+                            <option value="custom">Add Custom Category...</option>
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         </div>
+                        
+                        {/* Custom category input */}
+                        {isCustomCategory && (
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={customCategory}
+                              onChange={handleCustomCategoryChange}
+                              placeholder="Enter a custom category name"
+                              className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
+                            />
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                              <FaTags className="text-gray-400" />
+                            </div>
+                          </div>
+                        )}
                       </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Categorize your article for organization and SEO purposes.
+                        {isCustomCategory && " Custom categories help organize specialized content."}
+                      </p>
                     </div>
                     
                     <div>

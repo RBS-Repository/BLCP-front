@@ -14,6 +14,7 @@ const ArticlesIndex = () => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [uniqueCategories, setUniqueCategories] = useState([]);
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -37,7 +38,14 @@ const ArticlesIndex = () => {
           }
         });
         
-        setArticles(Array.isArray(response.data) ? response.data : []);
+        const articlesData = Array.isArray(response.data) ? response.data : [];
+        setArticles(articlesData);
+        
+        // Extract unique categories from articles
+        if (articlesData.length > 0) {
+          const categories = [...new Set(articlesData.map(article => article.category))];
+          setUniqueCategories(categories);
+        }
       } catch (error) {
         console.error('Error fetching articles:', error);
         toast.error('Failed to load articles');
@@ -50,13 +58,45 @@ const ArticlesIndex = () => {
     fetchArticles();
   }, [activeCategory, searchQuery]);
 
-  const categories = [
-    { id: 'all', name: 'All Articles' },
+  // Default predefined categories
+  const defaultCategories = [
     { id: 'skincare', name: 'Skincare' },
     { id: 'manufacturing', name: 'Manufacturing' },
     { id: 'compliance', name: 'Compliance' },
     { id: 'business', name: 'Business' }
   ];
+  
+  // Generate categories list combining default and unique categories from articles
+  const getCategories = () => {
+    // Start with the "All Articles" option
+    const allCategories = [{ id: 'all', name: 'All Articles' }];
+    
+    // Add default categories
+    defaultCategories.forEach(category => {
+      // Only add if there are articles with this category
+      if (articles.some(article => article.category === category.id)) {
+        allCategories.push(category);
+      }
+    });
+    
+    // Add custom categories found in articles
+    uniqueCategories.forEach(categoryId => {
+      // Skip if it's already in the default categories
+      if (!defaultCategories.some(cat => cat.id === categoryId)) {
+        // Format the custom category name - capitalize first letter of each word
+        const name = categoryId
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+          
+        allCategories.push({ id: categoryId, name });
+      }
+    });
+    
+    return allCategories;
+  };
+  
+  const categories = getCategories();
   
   const filteredArticles = articles.filter(article => {
         // Category filter
@@ -71,6 +111,12 @@ const ArticlesIndex = () => {
         
         return true;
   });
+
+  // Get category name by ID (similar to ArticlesManager)
+  const getCategoryName = (categoryId) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : categoryId.charAt(0).toUpperCase() + categoryId.slice(1);
+  };
 
   const toggleArticleExpansion = (articleId) => {
     setExpandedArticles({
@@ -162,7 +208,7 @@ const ArticlesIndex = () => {
                       {/* Article Content */}
                       <div className="p-6 md:w-2/3 flex flex-col">
                         <div className="flex items-center text-sm mb-2">
-                          <span className="text-[#363a94] font-medium capitalize">{article.category}</span>
+                          <span className="text-[#363a94] font-medium capitalize">{getCategoryName(article.category)}</span>
                           <span className="mx-2 text-gray-300">•</span>
                           <span className="text-gray-500">{article.date}</span>
                           <span className="mx-2 text-gray-300">•</span>
