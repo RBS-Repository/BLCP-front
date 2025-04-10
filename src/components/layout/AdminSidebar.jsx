@@ -326,6 +326,23 @@ const AdminSidebar = () => {
               
               <ListItem
                 component={Link}
+                to="/admin/product-spotlight"
+                sx={{
+                  pl: 4,
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: '#f5f5f5' },
+                  backgroundColor: location.pathname === '/admin/product-spotlight' ? '#f0f0f0' : 'transparent',
+                  '&.Mui-selected': { backgroundColor: '#e0e0e0' }
+                }}
+              >
+                <ListItemIcon sx={{ color: '#000000' }}>
+                  <ImageIcon />
+                </ListItemIcon>
+                {!collapsed && <ListItemText primary="Product Spotlight" />}
+              </ListItem>
+              
+              <ListItem
+                component={Link}
                 to="/admin/faq"
                 sx={{
                   pl: 4,

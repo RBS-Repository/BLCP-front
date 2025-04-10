@@ -16,7 +16,6 @@ import Checkout from './pages/Shop/Checkout';
 import Schedule from './pages/Schedule';
 import FAQ from './pages/FAQ';
 import AboutIndex from './pages/About/index';
-import ServicesIndex from './pages/Services/index';
 import FDA from './pages/Services/FDA';
 import OEM from './pages/Services/OEM';
 import PrivateLabel from './pages/Services/PrivateLabel';
@@ -64,6 +63,7 @@ import Privacy from './pages/Privacy';
 import Wishlist from './pages/Wishlist';
 import { WishlistProvider } from './context/WishlistContext';
 import ContactManager from './pages/admin/ContactManager';
+import ProductSpotlightManager from './pages/admin/ProductSpotlightManager';
 
 // Redirect authenticated users away from auth pages
 const AuthRoute = ({ children }) => {
@@ -182,7 +182,7 @@ function App() {
                       <Route path="/verify-email" element={<VerifyEmail />} />
 
                       {/* Services Routes */}
-                      <Route path="/services" element={<ServicesIndex />} />
+                  
                       <Route path="/services/fda" element={<FDA />} />
                       <Route path="/services/oem" element={<OEM />} />
                       <Route path="/services/private-label" element={<PrivateLabel />} />
@@ -342,6 +342,13 @@ function App() {
                       <Route path="/admin/hero-slider" element={
                         <AdminRoute>
                           <HeroSliderManager />
+                        </AdminRoute>
+                      } />
+
+                      {/* Product Spotlight Manager */}
+                      <Route path="/admin/product-spotlight" element={
+                        <AdminRoute>
+                          <ProductSpotlightManager />
                         </AdminRoute>
                       } />
 

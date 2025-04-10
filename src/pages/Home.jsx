@@ -278,6 +278,28 @@ const Home = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [heroImageSrc, setHeroImageSrc] = useState({}); // Store image sources for each slide
   
+  // Spotlight data state
+  const [spotlightData, setSpotlightData] = useState({
+    hero: {
+      image: '',
+      title: '',
+      description: '',
+      buttonText: '',
+      buttonLink: ''
+    },
+    products: [],
+    promotionBanner: {
+      image: '',
+      title: '',
+      description: '',
+      badgeText: '',
+      buttonText: '',
+      buttonLink: ''
+    }
+  });
+  const [loadingSpotlight, setLoadingSpotlight] = useState(true);
+  const [expandedImage, setExpandedImage] = useState(null);
+  
   // Create parallax references for various sections
   const heroRef = useRef(null);
   const productsRef = useRef(null);
@@ -340,13 +362,25 @@ const Home = () => {
     fetchHeroData();
   }, []);
 
-  // Product categories
-  const categoryList = [
-    { name: "Cell Repair", icon: cellRepairBoost, link: "/products?category=cell-repair" },
-    { name: "OxyJet", icon: oxyjetTreatment, link: "/products?category=oxyjet" },
-    { name: "PDRN Therapy", icon: hempPeak, link: "/products?category=pdrn" },
-    { name: "Skincare", icon: heroBackground, link: "/products?category=skincare" }
-  ];
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/categories');
+        
+        if (response.data && Array.isArray(response.data)) {
+          // Store fetched categories
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        // Set fallback categories in case of API failure
+        setCategories(['Skincare', 'Anti-Aging', 'Cleansers', 'Serums', 'Professional', 'Kits']);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   // Improve product data loading and error handling
   useEffect(() => {
@@ -413,7 +447,26 @@ const Home = () => {
   const { user } = useAuth();
   const isEmailVerified = user ? user.emailVerified : false;
 
-  const [expandedImage, setExpandedImage] = useState(null);
+  // Fetch spotlight data
+  useEffect(() => {
+    const fetchSpotlightData = async () => {
+      try {
+        setLoadingSpotlight(true);
+        const response = await api.get('/spotlight');
+        
+        if (response.data) {
+          setSpotlightData(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching spotlight data:', error);
+        // We'll keep the default state data if the API fails
+      } finally {
+        setLoadingSpotlight(false);
+      }
+    };
+
+    fetchSpotlightData();
+  }, []);
 
   return (
     <ParallaxProvider>
@@ -984,6 +1037,227 @@ const Home = () => {
           </div>
         </section>
 */}
+
+
+        {/* Cosmetic Product Spotlight Section - Updated to use API data */}
+        <section className="pt-16 pb-20 bg-gradient-to-b from-white to-gray-50 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Section Title */}
+            <div className="text-center mb-10">
+              <motion.span 
+                className="inline-block text-sm font-medium text-[#363a94] mb-2 tracking-wider uppercase"
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4 }}
+              >
+                Product Spotlight
+              </motion.span>
+              <motion.h2 
+                className="text-3xl md:text-4xl font-bold text-gray-900 mb-3"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                Discover Our Latest Collections
+              </motion.h2>
+              <motion.div 
+                className="h-1 w-24 bg-[#363a94] mx-auto"
+                initial={{ width: 0 }}
+                whileInView={{ width: 96 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              ></motion.div>
+            </div>
+
+            {loadingSpotlight ? (
+              // Loading skeleton for spotlight section
+              <div className="space-y-8">
+                <div className="animate-pulse rounded-2xl overflow-hidden h-80 bg-gray-200"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[...Array(4)].map((_, index) => (
+                    <div key={index} className="animate-pulse bg-white rounded-xl overflow-hidden shadow-md">
+                      <div className="h-64 bg-gray-200"></div>
+                      <div className="p-5 space-y-3">
+                        <div className="h-5 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Hero Banner from API */}
+                <motion.div 
+                  className="relative rounded-2xl overflow-hidden mb-16 shadow-xl"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7 }}
+                >
+                  <div className="aspect-[21/9] relative">
+                    <div className="absolute inset-0">
+                      <img 
+                        src={spotlightData.hero.image} 
+                        alt={spotlightData.hero.title} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Content Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent flex items-center">
+                      <div className="max-w-xl px-8 md:px-12 lg:px-16">
+                        <motion.h3 
+                          className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4"
+                          initial={{ opacity: 0, x: -30 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, delay: 0.2 }}
+                        >
+                          {spotlightData.hero.title}
+                        </motion.h3>
+                        <motion.p 
+                          className="text-white/90 text-lg mb-6"
+                          initial={{ opacity: 0, x: -30 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, delay: 0.3 }}
+                        >
+                          {spotlightData.hero.description}
+                        </motion.p>
+                        <motion.div
+                          initial={{ opacity: 0, x: -30 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, delay: 0.4 }}
+                        >
+                          <Link 
+                            to={spotlightData.hero.buttonLink}
+                            className="inline-flex items-center px-6 py-3 bg-white text-[#363a94] font-bold rounded-full hover:bg-gray-100 transition-all duration-300 shadow-md"
+                          >
+                            {spotlightData.hero.buttonText}
+                            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                          </Link>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Dynamic Product Grid from API */}
+                <div className="mb-16">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                    {spotlightData.products.map((product, index) => (
+                      <motion.div 
+                        key={product.id}
+                        className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300"
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.1 * (index + 1) }}
+                        whileHover={{ y: -8 }}
+                      >
+                        <div 
+                          className="h-64 overflow-hidden relative cursor-pointer"
+                          onClick={() => setExpandedImage({
+                            src: product.image,
+                            alt: product.title
+                          })}
+                        >
+                          <img 
+                            src={product.image}
+                            alt={product.title} 
+                            className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110"
+                          />
+                          {product.badgeText && (
+                            <div className="absolute top-4 right-4 bg-[#363a94] text-white px-3 py-1 rounded-full text-xs font-medium">
+                              {product.badgeText}
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-5">
+                          <h3 className="text-lg font-bold text-gray-900 mb-1">{product.title}</h3>
+                          <p className="text-gray-600 text-sm">{product.description}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Promotion Banner from API */}
+                <motion.div 
+                  className="rounded-2xl overflow-hidden shadow-lg"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <div className="bg-gradient-to-r from-[#363a94] to-indigo-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2">
+                      <div className="aspect-square md:aspect-auto md:h-auto relative">
+                        <img 
+                          src={spotlightData.promotionBanner.image} 
+                          alt={spotlightData.promotionBanner.title} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-8 md:p-12 flex flex-col justify-center">
+                        {spotlightData.promotionBanner.badgeText && (
+                          <span className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-white mb-4">
+                            {spotlightData.promotionBanner.badgeText}
+                          </span>
+                        )}
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">{spotlightData.promotionBanner.title}</h3>
+                        <p className="text-white/90 mb-8">{spotlightData.promotionBanner.description}</p>
+                        <div>
+                          <Link 
+                            to={spotlightData.promotionBanner.buttonLink}
+                            className="inline-flex items-center px-6 py-3 bg-white text-[#363a94] font-medium rounded-lg hover:bg-gray-100 transition-colors shadow-sm"
+                          >
+                            {spotlightData.promotionBanner.buttonText}
+                            <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+            
+            {/* Image Modal */}
+            {expandedImage && (
+              <div 
+                className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm"
+                onClick={() => setExpandedImage(null)}
+              >
+                <div className="relative max-w-3xl w-full h-auto">
+                  <button
+                    onClick={() => setExpandedImage(null)}
+                    className="absolute -top-12 right-0 text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+                    aria-label="Close image"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <img 
+                    src={expandedImage.src} 
+                    alt={expandedImage.alt}
+                    className="w-auto h-auto max-h-[80vh] mx-auto shadow-2xl p-1 bg-white/10 rounded-lg"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* How It Works */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1153,322 +1427,10 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Featured Product Lines Section */}
-        <section className="py-24 w-full left-28 bg-white relative overflow-hidden">
-          <div className="max-w-7x5 mx-auto px-4 sm:px-6 lg:px-8 relative flex flex-col items-center">
-            <div className="text-center mb-8 w-full">
-              <motion.h2  
-                className="text-3xl md:text-3xl font-bold text-gray-900 mb-4 right-14"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-              >
-                Featured Product Lines
-              </motion.h2>
-            </div>
-            
-            {/* Enhanced Mosaic/Bento Grid Layout */}
-            <div className="grid  sm:grid-cols-4 md:grid-cols-6 gap-3 mb-8 w-full max-w-7xl mx-auto left-28">
-              {/* Row 1 */}
-              {/* Large Featured Product - First Row Span 2 */}
-                <motion.div
-                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-red-500 cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/we-peep-and-hibiscus-beauty-product-cosmetics-ad-template-0srugaa126f192.webp",
-                  alt: "OxyJet Professional Series"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/we-peep-and-hibiscus-beauty-product-cosmetics-ad-template-0srugaa126f192.webp" 
-                    alt="OxyJet Professional Series" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                </motion.div>
-              
-              {/* Cell Repair - First Row */}
-              <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-200 cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://i.pinimg.com/736x/f1/48/a0/f148a004dc4ec95e9db97fd7ba6f97b1.jpg",
-                  alt: "Cell Repair Boost"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://i.pinimg.com/736x/f1/48/a0/f148a004dc4ec95e9db97fd7ba6f97b1.jpg"
-                    alt="Cell Repair Boost" 
-                    className="w-full h-full object-cover"
-                  />
-              </div>
-              </motion.div>
-              
-              {/* PDRN Therapy - First Row */}
-              <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-600 cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://roiminds-1e808.kxcdn.com/wp-content/uploads/2023/05/Lancome.png",
-                  alt: "PDRN Therapy"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://roiminds-1e808.kxcdn.com/wp-content/uploads/2023/05/Lancome.png" 
-                    alt="PDRN Therapy" 
-                    className="w-full h-full object-cover"
-                  />
-            </div>
-              </motion.div>
-              
-              {/* Row 2 - Additional Elements */}
-              
-              {/* Skincare - Start of Row 2 */}
-              <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-blue-500 cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.4 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://png.pngtree.com/png-clipart/20200226/original/pngtree-cosmetics-product-ads-poster-template-beauty-cosmetic-png-image_5313505.jpg",
-                  alt: "Skincare Collection"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://png.pngtree.com/png-clipart/20200226/original/pngtree-cosmetics-product-ads-poster-template-beauty-cosmetic-png-image_5313505.jpg" 
-                    alt="Skincare Collection" 
-                    className="w-full h-full object-cover"
-                  />
-          </div>
-              </motion.div>
-              
-              {/* 2x1 Horizontal - Spans across Row 2 */}
-              <motion.div 
-                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-amber-100 cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://brentonway.com/wp-content/uploads/2024/02/image-26.png",
-                  alt: "Professional Products"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://brentonway.com/wp-content/uploads/2024/02/image-26.png"
-                    alt="Professional Products" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-              </motion.div>
-              
-              {/* Row 3 */}
-              
-              {/* Small Box - Row 3 */}
-              <motion.div 
-                className="col-span-1 row-span-1 rounded-lg shadow-sm overflow-hidden bg-indigo-100 cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.6 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://cdn.confect.io/uploads/media/271855174_1031068707751720_4161178570420835579_n%20-%20Copy.jpg",
-                  alt: "Essential Products"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://cdn.confect.io/uploads/media/271855174_1031068707751720_4161178570420835579_n%20-%20Copy.jpg"
-                    alt="Essential Products" 
-                    className="w-full h-full object-cover"
-                  />
-              </div>
-              </motion.div>
-              
-              {/* Medium Box - Row 3 */}
-              <motion.div 
-                className="col-span-2 row-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-800 sm:hidden md:block cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.7 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/luxury-beauty-product-template-design-802d996d24722d52590b6fba98a4bc66_screen.jpg?ts=1645416275",
-                  alt: "Spa Treatments"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://d1csarkz8obe9u.cloudfront.net/posterpreviews/luxury-beauty-product-template-design-802d996d24722d52590b6fba98a4bc66_screen.jpg?ts=1645416275"
-                    alt="Spa Treatments" 
-                    className="w-full h-full object-cover"
-                />
-              </div>
-              </motion.div>
-              
-              {/* Large Box - Spans Rows 3-4 */}
-              <motion.div 
-                className="col-span-2 row-span-2 rounded-lg shadow-sm overflow-hidden bg-amber-700 hidden md:block cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.8 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/kobi-and-jazzberry-jam-skin-care-ad-template-zp0mrfa126f192.webp",
-                  alt: "Skincare Sets"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://d3jmn01ri1fzgl.cloudfront.net/photoadking/webp_thumbnail/kobi-and-jazzberry-jam-skin-care-ad-template-zp0mrfa126f192.webp" 
-                    alt="Skincare Sets" 
-                    className="w-full h-full object-cover"
-                  />
-            </div>
-              </motion.div>
-              
-              {/* New Box - Vertical Rectangle */}
-              <motion.div 
-                className="col-span-1 row-span-2 rounded-lg shadow-sm overflow-hidden bg-purple-100 hidden md:block cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.85 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: "https://marketplace.canva.com/EAF3o7BdLno/2/0/1131w/canva-white-and-pink-skincare-product-flyer-Zq-VceMZmOw.jpg",
-                  alt: "Premium Collection"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src="https://marketplace.canva.com/EAF3o7BdLno/2/0/1131w/canva-white-and-pink-skincare-product-flyer-Zq-VceMZmOw.jpg"
-                    alt="Premium Collection" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </motion.div>
-              
-              {/* Row 4 - mobile only */}
-              <motion.div 
-                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.9 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: hero5,
-                  alt: "Natural Products"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src={hero5} 
-                    alt="Natural Products" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                className="col-span-1 rounded-lg shadow-sm overflow-hidden bg-gray-300 sm:block md:hidden cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 1.0 }}
-                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-                onClick={() => setExpandedImage({
-                  src: hero4,
-                  alt: "Beauty Kits"
-                })}
-              >
-                <div className="relative h-full">
-                  <img 
-                    src={hero4} 
-                    alt="Beauty Kits" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </motion.div>
-            </div>
-            
-            <div className="text-center mt-8">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Link 
-                  to="/products"
-                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-[#363a94] to-indigo-600 text-white font-bold rounded-lg hover:shadow-lg transition-all duration-300 shadow-md"
-                >
-                  Explore All Products
-                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                  </svg>
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-          
-          {/* Image Expansion Modal */}
-          {expandedImage && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-80 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm"
-              onClick={() => setExpandedImage(null)}
-            >
-              <motion.div 
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center"
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the content
-              >
-                <button 
-                  onClick={() => setExpandedImage(null)}
-                  className="absolute top-0 right-0 bg-white rounded-full p-2 shadow-lg transform translate-x-1/2 -translate-y-1/2 z-10 hover:bg-gray-100 transition-colors"
-                  aria-label="Close image"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <img 
-                  src={expandedImage.src} 
-                  alt={expandedImage.alt} 
-                  className="max-h-[85vh] max-w-full w-auto h-auto rounded-lg shadow-2xl object-contain bg-white p-1"
-                />
-              </motion.div>
-            </motion.div>
-          )}
-        </section>
-{/* Schedule Consultation Banner */}
-<section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#363a94] text-white">
+
+
+        {/* Schedule Consultation Banner */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#363a94] text-white">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1606,7 +1568,7 @@ const Home = () => {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: 0.3 + (i * 0.1) }}
                         >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.32c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.414-1.414L2.98 8.87c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.414-1.414L2.98 8.87c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </motion.svg>
                     ))}
                   </div>
