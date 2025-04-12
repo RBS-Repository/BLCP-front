@@ -719,7 +719,7 @@ const Home = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                 </svg>
-                Book a Consultation
+                Schedule Your Consultation
               </Link>
             </motion.div>
           </div>
@@ -894,19 +894,7 @@ const Home = () => {
                                   )}
                                   
                                   {/* Add to Cart button */}
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={(e) => {
-                                      e.preventDefault(); // Prevent Link navigation
-                                      user ? handleAddToCart(product) : navigate('/login');
-                                    }}
-                                    className="px-3 py-1 bg-[#363a94] text-white rounded-lg text-sm hover:bg-[#2a2d73] transition-colors flex items-center"
-                                    disabled={!user || !isEmailVerified}
-                                  >
-                                    <FaShoppingCart className="mr-1" />
-                                    {user && isEmailVerified ? 'Add' : 'Login'}
-                                  </motion.button>
+                           
                                 </div>
                               </div>
                             </Link>
@@ -1393,37 +1381,88 @@ const Home = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                 >
-                  <h2 className="text-3xl font-bold text-[#363a94] mb-6 text-center">Why Choose BLCP Solutions?</h2>
-                  <div className="max-w-3xl mx-auto space-y-6">
-                    <div className="flex items-start">
+                  <h2 className="text-3xl font-bold text-[#363a94] mb-10 text-center">Why Choose BLCP Solutions?</h2>
+                  
+                  <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.1 }}
+                      className="flex items-start p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
                       <div className="flex-shrink-0 mt-1">
-                        <div className="w-6 h-6 rounded-full bg-[#363a94] flex items-center justify-center text-white text-xs font-bold">1</div>
+                        <div className="w-8 h-8 rounded-full bg-[#363a94] flex items-center justify-center text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
                       </div>
                       <div className="ml-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-2">FDA Registered Products</h3>
                         <p className="text-gray-600">All products are registered with the FDA, ensuring safety and compliance with international standards.</p>
                       </div>
-                    </div>
+                    </motion.div>
                     
-                    <div className="flex items-start">
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2 }}
+                      className="flex items-start p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
                       <div className="flex-shrink-0 mt-1">
-                        <div className="w-6 h-6 rounded-full bg-[#363a94] flex items-center justify-center text-white text-xs font-bold">2</div>
+                        <div className="w-8 h-8 rounded-full bg-[#363a94] flex items-center justify-center text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
                       </div>
                       <div className="ml-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Advanced Korean Technology</h3>
                         <p className="text-gray-600">Partnering with leading Korean laboratories to bring cutting-edge beauty innovations to professionals.</p>
                       </div>
-                    </div>
+                    </motion.div>
                     
-                    <div className="flex items-start">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.3 }}
+                      className="flex items-start p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
                       <div className="flex-shrink-0 mt-1">
-                        <div className="w-6 h-6 rounded-full bg-[#363a94] flex items-center justify-center text-white text-xs font-bold">3</div>
+                        <div className="w-8 h-8 rounded-full bg-[#363a94] flex items-center justify-center text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
                       </div>
                       <div className="ml-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Business Support</h3>
                         <p className="text-gray-600">Comprehensive training, marketing materials, and ongoing support for salon and spa partners.</p>
                       </div>
-                    </div>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.4 }}
+                      className="flex items-start p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        <div className="w-8 h-8 rounded-full bg-[#363a94] flex items-center justify-center text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Quality Guaranteed</h3>
+                        <p className="text-gray-600">100% satisfaction guarantee with all products backed by extensive research and rigorous testing.</p>
+                      </div>
+                    </motion.div>
                   </div>
                 </motion.div>
               </div>
@@ -1434,7 +1473,7 @@ const Home = () => {
 
 
         {/* Schedule Consultation Banner */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#363a94] text-white">
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#2a2d73] text-white">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1443,24 +1482,41 @@ const Home = () => {
               transition={{ duration: 0.6 }}
               className="text-center"
             >
-              <h2 className="text-3xl font-bold mb-4">Ready for a Beauty Consultation?</h2>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">Ready for a Beauty Consultation?</h2>
               <p className="text-xl text-white/90 max-w-2xl mx-auto mb-8">
                 Get personalized product recommendations from our beauty experts
               </p>
-              <Link 
-                to="/schedule" 
-                className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-[#363a94] bg-white hover:bg-gray-100 shadow-lg transition-colors duration-300"
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.03, 1],
+                  boxShadow: [
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+                  ]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  repeatType: "loop"
+                }}
+                className="inline-block"
               >
-                Schedule Your Consultation
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5 ml-2" 
-                  viewBox="0 0 20 20" 
-                  fill="#363a94"
+                <Link 
+                  to="/schedule" 
+                  className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-lg text-[#2a2d73] bg-white hover:bg-gray-100 shadow-lg transition-colors duration-300"
                 >
-                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </Link>
+                  Schedule Your Consultation
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-5 w-5 ml-2" 
+                    viewBox="0 0 20 20" 
+                    fill="#2a2d73"
+                  >
+                    <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </Link>
+              </motion.div>
             </motion.div>
           </div>
         </section>
@@ -1468,18 +1524,22 @@ const Home = () => {
         {/* Trust Badges */}
         <section className="py-12 border-t border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
               {[
                 { icon: "🇰🇷", title: "Authentic Korean", desc: "Directly imported from Korea" },
                 { icon: "🧪", title: "FDA Approved", desc: "All products are FDA registered" },
                 { icon: "🚚", title: "Fast Shipping", desc: "2-3 day delivery nationwide" },
                 { icon: "✅", title: "Quality Guaranteed", desc: "100% satisfaction or refund" }
               ].map((badge, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-4xl mb-2">{badge.icon}</div>
+                <motion.div 
+                  key={index} 
+                  className="text-center flex-1 min-w-[200px] p-4 rounded-lg transition-all duration-300 hover:bg-white hover:shadow-md"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <div className="text-5xl mb-3 mx-auto">{badge.icon}</div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{badge.title}</h3>
                   <p className="text-sm text-gray-600">{badge.desc}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -1572,7 +1632,7 @@ const Home = () => {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: 0.3 + (i * 0.1) }}
                         >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.414-1.414L2.98 8.87c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.32c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.414-1.414L2.98 8.87c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.32z" />
                         </motion.svg>
                     ))}
                   </div>
