@@ -19,7 +19,9 @@ import {
   FaFont,
   FaExclamationTriangle,
   FaSortAmountDown,
-  FaCheck
+  FaCheck,
+  FaEye,
+  FaEyeSlash
 } from 'react-icons/fa';
 import {
   fetchHeroSlides,
@@ -29,6 +31,15 @@ import {
   updateSlidesOrder,
   uploadImage
 } from '../../api/heroSlides';
+
+/**
+ * IMPORTANT NOTE FOR IMAGE UPLOADS:
+ * For optimal performance and user experience, please use:
+ * - WebP format images whenever possible (better compression, smaller file size)
+ * - Images under 2MB in size
+ * - Compress images before uploading to improve page load times
+ * - Consider dimensions appropriate for display context to avoid unnecessary file size
+ */
 
 // Helper function to ensure draggable IDs are always valid static strings
 // This function won't change between renders
@@ -42,6 +53,19 @@ const createDraggableId = (prefix, id) => {
 const HeroSliderManager = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Note visibility state
+  const [showImageNote, setShowImageNote] = useState(() => {
+    // Get saved preference from localStorage or default to true (shown)
+    return localStorage.getItem('showImageNote') !== 'false';
+  });
+  
+  // Toggle note visibility
+  const toggleImageNote = () => {
+    const newValue = !showImageNote;
+    setShowImageNote(newValue);
+    localStorage.setItem('showImageNote', newValue.toString());
+  };
   
   const [loading, setLoading] = useState(true);
   const [slides, setSlides] = useState([]);
@@ -315,6 +339,39 @@ const HeroSliderManager = () => {
         {/* Content Area */}
         <div className="flex-1 overflow-auto px-8 py-6">
           <div className="max-w-7xl mx-auto">
+            {showImageNote && (
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 relative">
+                <button 
+                  onClick={toggleImageNote}
+                  className="absolute top-2 right-2 p-1 text-blue-500 hover:text-blue-700 transition-colors"
+                  aria-label="Hide image upload note"
+                  title="Hide note"
+                >
+                  <FaEyeSlash size={16} />
+                </button>
+                <h4 className="font-semibold text-blue-800 flex items-center mb-2">
+                  <FaExclamationTriangle className="mr-2" /> Image Upload Guidelines
+                </h4>
+                <ul className="text-sm text-blue-700 pl-6 list-disc space-y-1">
+                  <li>Use WebP format images whenever possible (better compression, smaller file size)</li>
+                  <li>Keep images under 2MB in size</li>
+                  <li>Compress images before uploading to improve page load times</li>
+                  <li>Use dimensions appropriate for display context to avoid unnecessary file size</li>
+                </ul>
+              </div>
+            )}
+
+            {!showImageNote && (
+              <div className="flex justify-end mb-4">
+                <button 
+                  onClick={toggleImageNote}
+                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  aria-label="Show image upload guidelines"
+                >
+                  <FaEye size={14} className="mr-1" /> Show image guidelines
+                </button>
+              </div>
+            )}
             <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
               <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center">

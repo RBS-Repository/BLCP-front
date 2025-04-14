@@ -6,11 +6,25 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { FaNewspaper, FaPencilAlt, FaTrash, FaCheck, FaTimes, FaExternalLinkAlt, FaPlus, FaSave, FaEye, FaClock, FaStar, FaTags } from 'react-icons/fa';
+import { FaNewspaper, FaPencilAlt, FaTrash, FaCheck, FaTimes, FaExternalLinkAlt, FaPlus, FaSave, FaEye, FaEyeSlash, FaExclamationTriangle, FaClock, FaStar, FaTags } from 'react-icons/fa';
 
 const ArticlesManager = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Note visibility state
+  const [showImageNote, setShowImageNote] = useState(() => {
+    // Get saved preference from localStorage or default to true (shown)
+    return localStorage.getItem('showImageNote') !== 'false';
+  });
+  
+  // Toggle note visibility
+  const toggleImageNote = () => {
+    const newValue = !showImageNote;
+    setShowImageNote(newValue);
+    localStorage.setItem('showImageNote', newValue.toString());
+  };
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [articles, setArticles] = useState([]);
@@ -356,6 +370,45 @@ const ArticlesManager = () => {
             </div>
           </div>
         </div>
+        
+        {/* Image Guidelines Note */}
+        {showImageNote && (
+          <div className="max-w-7xl mx-auto px-8 pt-6">
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-0 relative">
+              <button 
+                onClick={toggleImageNote}
+                className="absolute top-2 right-2 p-1 text-blue-500 hover:text-blue-700 transition-colors"
+                aria-label="Hide image upload note"
+                title="Hide note"
+              >
+                <FaEyeSlash size={16} />
+              </button>
+              <h4 className="font-semibold text-blue-800 flex items-center mb-2">
+                <FaExclamationTriangle className="mr-2" /> Image Upload Guidelines
+              </h4>
+              <ul className="text-sm text-blue-700 pl-6 list-disc space-y-1">
+                <li>Use WebP format images whenever possible (better compression, smaller file size)</li>
+                <li>Keep images under 2MB in size</li>
+                <li>Compress images before uploading to improve page load times</li>
+                <li>Use dimensions appropriate for display context to avoid unnecessary file size</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {!showImageNote && (
+          <div className="max-w-7xl mx-auto px-8 pt-4 pb-0">
+            <div className="flex justify-end">
+              <button 
+                onClick={toggleImageNote}
+                className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                aria-label="Show image upload guidelines"
+              >
+                <FaEye size={14} className="mr-1" /> Show image guidelines
+              </button>
+            </div>
+          </div>
+        )}
         
         <div className="max-w-7xl mx-auto px-8 py-6">
           {isEditing ? (
