@@ -156,6 +156,11 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId }) => {
       case 'shipped': return <FaTruck className="text-blue-700" />;
       case 'delivered': return <FaCheck className="text-green-500" />;
       case 'completed': return <FaCheck className="text-green-700" />;
+      case 'cancelled': return (
+        <svg className="text-red-500 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      );
       default: return <FaSpinner className="text-gray-500 animate-spin" />;
     }
   };
@@ -167,6 +172,7 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId }) => {
       case 'shipped': return 'bg-blue-700';
       case 'delivered': 
       case 'completed': return 'bg-green-600';
+      case 'cancelled': return 'bg-red-600';
       default: return 'bg-gray-500';
     }
   };

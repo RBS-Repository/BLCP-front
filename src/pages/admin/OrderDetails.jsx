@@ -922,12 +922,12 @@ const OrderDetails = () => {
                 
                     <div className="flex items-start group">
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 transition-transform group-hover:scale-110 ${
-                    orderData.status === 'delivered' || orderData.status === 'completed'
+                    orderData.status === 'delivered' || orderData.status === 'completed' || orderData.status === 'cancelled'
                       ? 'bg-green-100 border-green-500 text-green-500'
                       : 'bg-white border-gray-300 text-gray-400'
                   }`}>
                         <div className={`w-2 h-2 rounded-full ${
-                          orderData.status === 'delivered' || orderData.status === 'completed'
+                          orderData.status === 'delivered' || orderData.status === 'completed' || orderData.status === 'cancelled'
                             ? 'bg-green-500'
                             : 'bg-gray-400'
                         }`}></div>
@@ -942,23 +942,37 @@ const OrderDetails = () => {
                 
                     <div className="flex items-start group">
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 transition-transform group-hover:scale-110 ${
-                    orderData.status === 'completed'
-                      ? 'bg-green-100 border-green-500 text-green-500'
+                    orderData.status === 'cancelled'
+                      ? 'bg-red-100 border-red-500 text-red-500'
                       : 'bg-white border-gray-300 text-gray-400'
                   }`}>
                         <div className={`w-2 h-2 rounded-full ${
-                          orderData.status === 'completed'
-                            ? 'bg-green-500'
+                          orderData.status === 'cancelled'
+                            ? 'bg-red-500'
                             : 'bg-gray-400'
                         }`}></div>
                   </div>
                       <div>
                         <p className={`font-medium ${
+                          orderData.status === 'cancelled' ? 'text-red-600' : 'text-gray-900'
+                        }`}>Cancelled</p>
+                        <p className="text-sm text-gray-500">Order has been cancelled</p>
+                      </div>
+                    </div>
+                
+                    <div className="flex items-start group">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 transition-transform group-hover:scale-110 ${
+                    orderData.status === 'completed'
+                      ? 'bg-green-100 border-green-500 text-green-500'
+                      : 'bg-white border-gray-300 text-gray-400'
+                  }`}></div>
+                      <div>
+                        <p className={`font-medium ${
                           orderData.status === 'completed' ? 'text-blue-600' : 'text-gray-900'
                         }`}>Completed</p>
-                    <p className="text-sm text-gray-500">Order has been completed</p>
-                  </div>
-                </div>
+                        <p className="text-sm text-gray-500">Order has been completed</p>
+                      </div>
+                    </div>
                           </div>
                         </div>
                       </div>
@@ -1074,12 +1088,14 @@ const OrderDetails = () => {
                 Update Order Status:
           </div>
               <div className="flex gap-2" style={{ zIndex: 9999 }}>
-                {['pending', 'processing', 'shipped', 'delivered', 'completed'].map((status) => (
+                {['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'].map((status) => (
                   <button
                     key={status}
                     className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center ${
                       orderData.status === status
                         ? 'bg-blue-200 text-blue-700 cursor-not-allowed'
+                        : status === 'cancelled'
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 hover:shadow focus:ring-2 focus:ring-red-300 focus:ring-opacity-50'
                         : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow focus:ring-2 focus:ring-blue-300 focus:ring-opacity-50'
                     }`}
                     onClick={() => updateOrderStatus(status)}
@@ -1097,15 +1113,14 @@ const OrderDetails = () => {
                     ) : (
                       <>
                         {status === 'pending' && <FaClock className="mr-2" size={14} />}
-                        {status === 'processing' && <FaBox className="mr-2" size={14} />}
+                        {status === 'processing' && <FaSpinner className="mr-2" size={14} />}
                         {status === 'shipped' && <FaTruck className="mr-2" size={14} />}
-                        {status === 'delivered' && (
-                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-                          </svg>
-                        )}
+                        {status === 'delivered' && <FaBox className="mr-2" size={14} />}
                         {status === 'completed' && <FaCheck className="mr-2" size={14} />}
-                        <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                        {status === 'cancelled' && <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>}
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
                       </>
                     )}
                   </button>
