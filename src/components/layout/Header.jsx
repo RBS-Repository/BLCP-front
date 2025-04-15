@@ -348,7 +348,7 @@ const Header = () => {
       title: 'Contact',
       path: '/contact'
     },
-    ...(isAdmin ? [{ title: 'Admin', path: window.location.href = '/admin/dashboard' }] : [])       
+    ...(isAdmin ? [{ title: 'Admin', path: '/admin/dashboard' }] : [])       
   ];
 
   // Event handlers
