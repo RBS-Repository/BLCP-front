@@ -10,7 +10,7 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { FaSort, FaSortUp, FaSortDown, FaSync, FaSyncAlt, FaSearch, FaFilter, FaUser, FaUserShield, 
   FaCheckCircle, FaTimesCircle, FaShoppingBag, FaCreditCard, FaCalendarAlt, FaEye, FaEdit, 
-  FaBan, FaChevronDown, FaChevronUp, FaExternalLinkAlt, FaIdCard, FaClock, FaSignInAlt, FaInfoCircle, FaChartLine, FaChevronLeft } from 'react-icons/fa';
+  FaBan, FaChevronDown, FaChevronUp, FaExternalLinkAlt, FaIdCard, FaClock, FaSignInAlt, FaInfoCircle, FaChartLine, FaChevronLeft, FaPhone, FaMapMarkerAlt, FaHome, FaMapPin, FaMailBulk, FaGlobe, FaCity } from 'react-icons/fa';
 import { MdEmail } from 'react-icons/md';
 
 // Add these utility functions
@@ -90,6 +90,36 @@ const getUserDisplayName = (user) => {
   
   // Last resort
   return `User ${user.id.substring(0, 6)}`;
+};
+
+// Add this function to get user's profile image or fallback to avatar
+const getUserProfileImage = (user) => {
+  if (user.photoURL) {
+    return user.photoURL;
+  }
+  
+  if (user.profileImage) {
+    return user.profileImage;
+  }
+  
+  return null; // Will use initials avatar as fallback
+};
+
+// Format address fields into readable address
+const formatAddress = (user) => {
+  if (!user) return 'No address available';
+  
+  const address = user.address || {};
+  const parts = [];
+  
+  if (address.street) parts.push(address.street);
+  if (address.city) parts.push(address.city);
+  if (address.state) parts.push(address.state);
+  if (address.postalCode) parts.push(address.postalCode);
+  if (address.country) parts.push(address.country);
+  
+  if (parts.length === 0) return 'No address available';
+  return parts.join(', ');
 };
 
 // Add this helper function at the top of your file
@@ -469,7 +499,7 @@ const Customers = () => {
       try {
         setLoading(true);
         
-        // 1. Fetch users from Firestore
+        // 1. Fetch users from Firestore with expanded fields
         const q = query(collection(db, 'users'));
         const unsubscribe = onSnapshot(q, async (snapshot) => {
           const usersData = snapshot.docs.map(doc => {
@@ -481,13 +511,24 @@ const Customers = () => {
               ...userData
             });
             
+            // Get profile image
+            const profileImage = getUserProfileImage({
+              id: doc.id,
+              ...userData
+            });
+            
             return {
               id: doc.id,
               ...userData,
               displayName, // Set the display name explicitly
+              profileImage, // Set profile image
               role: userData.isAdmin ? 'admin' : 'customer',
               status: userData.isActive !== false ? 'active' : 'inactive',
               additionalInfo: userData.additionalInfo || '', // Make sure we get this field
+              // Expanded data
+              address: userData.address || {},
+              phone: userData.phone || '',
+              lastLogin: userData.lastLogin || null,
             };
           });
           
@@ -1036,16 +1077,26 @@ const Customers = () => {
                   return (
                     <tr key={customer.id} className="hover:bg-blue-50/30 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                          <div className={`flex-shrink-0 h-11 w-11 bg-gradient-to-br ${gradientClass} rounded-xl shadow-md flex items-center justify-center overflow-hidden transition-all duration-200 hover:scale-105`}>
-                            <span className="text-white font-semibold text-lg">
-                            {getUserDisplayName(customer).charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="ml-4">
-                            <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {getUserDisplayName(customer)}
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-11 w-11 overflow-hidden rounded-xl shadow-md">
+                            {customer.profileImage ? (
+                              <img 
+                                src={customer.profileImage} 
+                                alt={getUserDisplayName(customer)} 
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className={`flex-shrink-0 h-11 w-11 bg-gradient-to-br ${getGradientColors(customer.id)[0]} rounded-xl shadow-md flex items-center justify-center overflow-hidden transition-all duration-200 hover:scale-105`}>
+                                <span className="text-white font-semibold text-lg">
+                                  {getUserDisplayName(customer).charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
                           </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                              {getUserDisplayName(customer)}
+                            </div>
                             <div className="text-sm text-gray-500 flex items-center">
                               <span className="truncate max-w-[180px]">{customer.email}</span>
                             </div>
@@ -1054,81 +1105,81 @@ const Customers = () => {
                                 {customer.id.substring(0, 8)}...
                               </span>
                             </div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-800">
-                        {formatDate(customer.createdAt)}
-                      </div>
-                      {customer.recentOrders && customer.recentOrders.length > 0 && (
+                          {formatDate(customer.createdAt)}
+                        </div>
+                        {customer.recentOrders && customer.recentOrders.length > 0 && (
                           <div className="flex items-center mt-1 text-xs text-gray-500">
                             <FaCalendarAlt className="mr-1.5 text-gray-400" size={12} />
                             <span>Last: {formatDate(customer.recentOrders[0].createdAt)}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className={`px-3 py-1.5 rounded-lg ${customer.totalOrders ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600'} font-medium flex items-center`}>
                             <FaShoppingBag className={`mr-1.5 ${customer.totalOrders ? 'text-blue-500' : 'text-gray-400'}`} size={12} />
                             <span className="text-sm">{customer.totalOrders || 0}</span>
                           </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className={`text-sm font-semibold ${parseFloat(customer.totalSpent || 0) > 0 ? 'text-emerald-600' : 'text-gray-600'}`}>
-                        {formatCurrency(customer.totalSpent || 0)}
-                      </div>
+                          {formatCurrency(customer.totalSpent || 0)}
+                        </div>
                         {parseFloat(customer.totalSpent || 0) > 0 && customer.totalOrders > 0 && (
                           <div className="text-xs text-gray-500 mt-1">
                             Avg: {formatCurrency((customer.totalSpent || 0) / customer.totalOrders)}
                           </div>
                         )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
                           <div className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none ${customer.status === 'active' ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 'bg-gradient-to-r from-gray-400 to-gray-500'} shadow-sm`}>
-                        <Switch
-                          checked={customer.status === 'active'}
-                          onChange={() => toggleUserStatus(customer.id, customer.status === 'active')}
-                              className="absolute opacity-0 w-full h-full cursor-pointer z-10"
-                            />
-                          <span
-                            className={`${
-                                customer.status === 'active' ? 'translate-x-7' : 'translate-x-1'
-                              } inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ease-in-out`}
-                            />
-                          </div>
-                          <div className="ml-3 flex flex-col">
-                            <span className={`text-sm font-medium ${customer.status === 'active' ? 'text-emerald-600' : 'text-gray-500'}`}>
-                              {customer.status === 'active' ? 'Active' : 'Inactive'}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {customer.status === 'active' ? 'Customer can login' : 'Access restricted'}
-                        </span>
-                          </div>
-                      </div>
-                    </td>
+                            <Switch
+                              checked={customer.status === 'active'}
+                              onChange={() => toggleUserStatus(customer.id, customer.status === 'active')}
+                                  className="absolute opacity-0 w-full h-full cursor-pointer z-10"
+                                />
+                              <span
+                                className={`${
+                                    customer.status === 'active' ? 'translate-x-7' : 'translate-x-1'
+                                  } inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ease-in-out`}
+                                />
+                              </div>
+                            <div className="ml-3 flex flex-col">
+                              <span className={`text-sm font-medium ${customer.status === 'active' ? 'text-emerald-600' : 'text-gray-500'}`}>
+                                {customer.status === 'active' ? 'Active' : 'Inactive'}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {customer.status === 'active' ? 'Customer can login' : 'Access restricted'}
+                              </span>
+                            </div>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end space-x-2">
-                      <button 
+                          <button 
                             className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-md transition-all duration-200 flex items-center"
-                        onClick={() => handleViewClick(customer)}
-                        disabled={actionLoading}
-                      >
+                            onClick={() => handleViewClick(customer)}
+                            disabled={actionLoading}
+                          >
                             <FaEye className="mr-1.5" size={14} />
                             <span>View</span>
-                      </button>
-                      <button 
+                          </button>
+                          <button 
                             className={`px-3 py-2 rounded-lg hover:shadow-md transition-all duration-200 flex items-center ${
                               customer.status === 'active' 
                                 ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
                                 : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white'
                             }`}
-                        onClick={() => toggleUserStatus(customer.id, customer.status === 'active')}
-                        disabled={actionLoading}
-                      >
+                            onClick={() => toggleUserStatus(customer.id, customer.status === 'active')}
+                            disabled={actionLoading}
+                          >
                             {customer.status === 'active' ? (
                               <>
                                 <FaBan className="mr-1.5" size={14} />
@@ -1140,10 +1191,10 @@ const Customers = () => {
                                 <span>Enable</span>
                               </>
                             )}
-                      </button>
+                          </button>
                         </div>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -1364,15 +1415,23 @@ const Customers = () => {
             
             {/* Customer summary */}
             <div className="bg-gradient-to-b from-indigo-50 to-white px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center">
-                <div className={`h-14 w-14 rounded-xl ${getGradientColors(selectedUser.id)[1]} flex items-center justify-center mr-4 shadow-md`}>
-                  <span className="text-white text-xl font-bold">
-                    {getUserDisplayName(selectedUser).charAt(0).toUpperCase() || '?'}
-                  </span>
+              <div className="flex items-center">
+                {selectedUser.profileImage ? (
+                  <img 
+                    src={selectedUser.profileImage} 
+                    alt={getUserDisplayName(selectedUser)} 
+                    className="h-14 w-14 rounded-xl object-cover shadow-md mr-4"
+                  />
+                ) : (
+                  <div className={`h-14 w-14 rounded-xl ${getGradientColors(selectedUser.id)[0]} flex items-center justify-center mr-4 shadow-md`}>
+                    <span className="text-white text-xl font-bold">
+                      {getUserDisplayName(selectedUser).charAt(0).toUpperCase() || '?'}
+                    </span>
                   </div>
+                )}
                 <div className="flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
+                    <div>
                       <h3 className="text-xl font-bold text-gray-800">{getUserDisplayName(selectedUser)}</h3>
                       <p className="text-gray-500 text-sm mt-0.5">{selectedUser.email}</p>
                     </div>
@@ -1390,8 +1449,8 @@ const Customers = () => {
                     </div>
                   </div>
                 </div>
-                  </div>
-                  </div>
+              </div>
+            </div>
             
             {/* Tabs navigation */}
             <div className="border-b border-gray-200">
@@ -1446,12 +1505,31 @@ const Customers = () => {
               {activeTab === 'profile' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Basic Information */}
                     <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
                       <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center border-b pb-2">
                         <FaIdCard className="mr-2 text-blue-500" />
-                        Contact Information
+                        Basic Information
                       </h4>
                       <div className="space-y-4">
+                        {/* Remove profile image div from here */}
+                        
+                        {/* Full Name */}
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                            <FaUser />
+                          </div>
+                          <div className="ml-2">
+                            <span className="text-sm text-gray-500">Full Name</span>
+                            <p className="text-gray-900">
+                              {selectedUser.firstName && selectedUser.lastName 
+                                ? `${selectedUser.firstName} ${selectedUser.lastName}`
+                                : (selectedUser.name || getUserDisplayName(selectedUser))}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Email */}
                         <div className="flex items-start">
                           <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
                             <MdEmail />
@@ -1461,6 +1539,21 @@ const Customers = () => {
                             <p className="text-gray-900">{selectedUser.email}</p>
                           </div>
                         </div>
+                        
+                        {/* Phone Number (if available) */}
+                        {selectedUser.phone && (
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                              <FaPhone />
+                            </div>
+                            <div className="ml-2">
+                              <span className="text-sm text-gray-500">Phone</span>
+                              <p className="text-gray-900">{selectedUser.phone}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* User ID */}
                         <div className="flex items-start">
                           <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
                             <FaIdCard />
@@ -1473,21 +1566,25 @@ const Customers = () => {
                       </div>
                     </div>
                     
+                    {/* Account Information */}
                     <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
                       <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center border-b pb-2">
                         <FaClock className="mr-2 text-blue-500" />
                         Account Information
                       </h4>
                       <div className="space-y-4">
+                        {/* Created Date */}
                         <div className="flex items-start">
                           <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
-                            <FaClock />
+                            <FaCalendarAlt />
                           </div>
                           <div className="ml-2">
-                            <span className="text-sm text-gray-500">Created</span>
+                            <span className="text-sm text-gray-500">Registration Date</span>
                             <p className="text-gray-900">{selectedUser.createdAt ? formatDate(selectedUser.createdAt) : 'Unknown'}</p>
                           </div>
                         </div>
+                        
+                        {/* Last Login */}
                         {selectedUser.lastLogin && (
                           <div className="flex items-start">
                             <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
@@ -1499,10 +1596,111 @@ const Customers = () => {
                             </div>
                           </div>
                         )}
+                        
+                        {/* Role */}
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                            <FaUserShield />
+                          </div>
+                          <div className="ml-2">
+                            <span className="text-sm text-gray-500">User Role</span>
+                            <p className={`text-gray-900 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
+                              selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {selectedUser.role === 'admin' ? 'Administrator' : 'Customer'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Status */}
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                            {selectedUser.status === 'active' ? <FaCheckCircle /> : <FaTimesCircle />}
+                          </div>
+                          <div className="ml-2">
+                            <span className="text-sm text-gray-500">Account Status</span>
+                            <p className={`text-gray-900 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
+                              selectedUser.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {selectedUser.status === 'active' ? 'Active' : 'Inactive'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
+                    </div>
                   </div>
-                </div>
-                
+                  
+                  {/* Address Information */}
+                  {(selectedUser.address && Object.keys(selectedUser.address).some(key => Boolean(selectedUser.address[key]))) && (
+                    <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center border-b pb-2">
+                        <FaMapMarkerAlt className="mr-2 text-blue-500" />
+                        Address Information
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedUser.address.street && (
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                              <FaHome />
+                            </div>
+                            <div className="ml-2">
+                              <span className="text-sm text-gray-500">Street</span>
+                              <p className="text-gray-900">{selectedUser.address.street}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {selectedUser.address.city && (
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                              <FaCity />
+                            </div>
+                            <div className="ml-2">
+                              <span className="text-sm text-gray-500">City</span>
+                              <p className="text-gray-900">{selectedUser.address.city}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {selectedUser.address.state && (
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                              <FaMapPin />
+                            </div>
+                            <div className="ml-2">
+                              <span className="text-sm text-gray-500">State/Province</span>
+                              <p className="text-gray-900">{selectedUser.address.state}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {selectedUser.address.postalCode && (
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                              <FaMailBulk />
+                            </div>
+                            <div className="ml-2">
+                              <span className="text-sm text-gray-500">Postal Code</span>
+                              <p className="text-gray-900">{selectedUser.address.postalCode}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {selectedUser.address.country && (
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 h-5 w-5 text-gray-400 mt-0.5">
+                              <FaGlobe />
+                            </div>
+                            <div className="ml-2">
+                              <span className="text-sm text-gray-500">Country</span>
+                              <p className="text-gray-900">{selectedUser.address.country}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Additional Information Section */}
                   {selectedUser.additionalInfo && (
                     <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
@@ -1511,13 +1709,13 @@ const Customers = () => {
                         Additional Information
                       </h4>
                       <div className="bg-white p-4 rounded-lg border border-gray-200 whitespace-pre-wrap text-gray-700 text-sm">
-                        {selectedUser.additionalInfo}
+                        {convertLinksToAnchors(selectedUser.additionalInfo)}
                       </div>
                     </div>
                   )}
-                    </div>
-                  )}
-                  
+                </div>
+              )}
+              
               {/* Orders Tab */}
               {activeTab === 'orders' && (
                 <div className="space-y-6">
