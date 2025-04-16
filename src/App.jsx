@@ -32,6 +32,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/auth/ChangePassword';
+import ProfileSettings from './pages/ProfileSettings';
 import VerifyEmail from './pages/auth/VerifyEmail';
 import { useAuth } from './context/AuthContext';
 import Contact from './pages/Contact';
@@ -175,6 +176,11 @@ function App() {
                       <Route path="/change-password" element={
                         <ProtectedRoute>
                           <ChangePassword />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/profile/settings" element={
+                        <ProtectedRoute>
+                          <ProfileSettings />
                         </ProtectedRoute>
                       } />
 
