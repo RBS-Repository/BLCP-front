@@ -30,6 +30,7 @@ import { BeatLoader } from 'react-spinners';
 import { BsFacebook } from 'react-icons/bs';
 import { FaInstagram } from 'react-icons/fa';
 import { FaTiktok } from 'react-icons/fa';
+import { debounce } from 'lodash';
 
 const sortOptions = [
   { id: 'featured', name: 'Featured' },
@@ -126,6 +127,7 @@ const Products = () => {
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const { user } = useAuth();
   const { wishlistItems, toggleWishlist, isInWishlist } = useWishlist();
@@ -158,6 +160,22 @@ const Products = () => {
   const categoryScrollRef = useRef(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setSearchQuery(value);
+      setCurrentPage(1);
+    }, 400), // 400ms debounce delay
+    []
+  );
+
+  // Handler for search input changes
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value); // Update UI immediately
+    debouncedSearch(value); // Debounce the actual search
+  };
 
   // Create page title and description based on selected category
   const getPageTitle = () => {
@@ -850,38 +868,41 @@ const Products = () => {
               <div className="flex flex-col space-y-6 p-5">
                 <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
                 
-                {/* Search */}
+                {/* Search - Updated with debounced search */}
                 <div className="relative filter-control floating-label-group">
-              <input
-                type="text"
+                  <input
+                    type="text"
                     id="product-search-sidebar"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder=" "
+                    value={inputValue}
+                    onChange={handleSearchChange}
+                    placeholder=" "
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#363a94] focus:border-transparent transition-all text-gray-700 shadow-sm search-input"
-                />
-                <label 
+                  />
+                  <label 
                     htmlFor="product-search-sidebar" 
                     className="absolute text-sm text-gray-500 duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] bg-white px-2 peer-focus:px-2 peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-8"
-                >
-                  Search products...
-                </label>
+                  >
+                    Search products...
+                  </label>
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  {inputValue && (
+                    <button 
+                      onClick={() => {
+                        setInputValue('');
+                        setSearchQuery('');
+                      }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                >
+                    >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-          </div>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
 
                 {/* Categories - Converted to vertical stack */}
                 <div className="space-y-3">
@@ -971,24 +992,27 @@ const Products = () => {
                 <div className="flex flex-col space-y-6 p-5 sm:p-6">
                   {/* Top control row - Enhanced search and filters */}
                   <div className="flex flex-col gap-4">
-                    {/* Improved search with prominent design */}
+                    {/* Improved search with prominent design - Updated with debounced search */}
                     <div className="relative filter-control">
                       <div className="flex items-center">
                         <div className="relative flex-grow">
                           <input
                             type="text"
                             id="product-search"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={inputValue}
+                            onChange={handleSearchChange}
                             placeholder="Search products..."
                             className="w-full pl-10 pr-10 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#363a94] focus:border-transparent transition-all text-gray-700 shadow-sm"
                           />
                           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
                             <FaSearch size={16} />
                           </div>
-                          {searchQuery && (
+                          {inputValue && (
                             <button 
-                              onClick={() => setSearchQuery('')}
+                              onClick={() => {
+                                setInputValue('');
+                                setSearchQuery('');
+                              }}
                               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-full hover:bg-gray-100"
                             >
                               <FaTimes size={16} />
@@ -1265,12 +1289,18 @@ const Products = () => {
           setSortBy(sort);
           setIsMobileFilterOpen(false);
         }}
-        searchQuery={searchQuery}
+        searchQuery={inputValue}
         onSearchChange={(query) => {
-          setSearchQuery(query);
+          setInputValue(query);
+          debouncedSearch(query);
+        }}
+        onClearAll={() => {
+          setSelectedCategory('all');
+          setInputValue('');
+          setSearchQuery('');
+          setSortBy('featured');
           setCurrentPage(1);
         }}
-        onClearAll={handleClearAllFilters}
       />
 
       {/* Add custom scrollbar styling */}

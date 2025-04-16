@@ -379,7 +379,7 @@ const ProductSpotlightManager = () => {
         </div>
         <br></br>
         {showImageNote && (
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 relative">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 relative  mx-24">
                 <button 
                   onClick={toggleImageNote}
                   className="absolute top-2 right-2 p-1 text-blue-500 hover:text-blue-700 transition-colors"

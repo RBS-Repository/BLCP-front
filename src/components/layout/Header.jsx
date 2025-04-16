@@ -347,8 +347,7 @@ const Header = () => {
     {
       title: 'Contact',
       path: '/contact'
-    },
-    ...(isAdmin ? [{ title: 'Admin', path: '/admin/dashboard' }] : [])       
+    }
   ];
 
   // Event handlers
@@ -1285,7 +1284,7 @@ const Header = () => {
                           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-2">Account Settings</h4>
                           <div className="space-y-1">
                       <Link 
-                              to="/profile/edit"
+                              to="/profile/settings"
                               className="flex items-center px-2 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                             onClick={() => setIsProfileDropdownOpen(false)}
                           >
@@ -1293,23 +1292,9 @@ const Header = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                               <div>
-                                <span className="font-medium">Edit Profile</span>
-                                <p className="text-xs text-gray-500">Update your personal information</p>
+                                <span className="font-medium">Account Settings</span>
+                                <p className="text-xs text-gray-500">Manage your profile and security</p>
                               </div>
-                      </Link>
-                      
-                      <Link 
-                              to="/change-password"
-                              className="flex items-center px-2 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                            onClick={() => setIsProfileDropdownOpen(false)}
-                          >
-                              <svg className="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                          </svg>
-                              <div>
-                                <span className="font-medium">Security</span>
-                                <p className="text-xs text-gray-500">Manage your password and security</p>
-                      </div>
                       </Link>
                           </div>
                         </div>
@@ -1492,24 +1477,14 @@ const Header = () => {
                         {/* Additional Profile Links */}
                         <div className="space-y-1">
                           <Link 
-                            to="/profile/edit" 
+                            to="/profile/settings" 
                             className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                             onClick={() => setIsMenuOpen(false)}
                           >
                             <svg className="w-5 h-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            Edit Profile
-                          </Link>
-                          <Link 
-                            to="/change-password" 
-                            className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                            onClick={() => setIsMenuOpen(false)}
-                          >
-                            <svg className="w-5 h-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                            </svg>
-                            Change Password
+                            Account Settings
                           </Link>
                           <Link 
                             to="/wishlist" 

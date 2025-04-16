@@ -231,11 +231,11 @@ const Profile = () => {
         
         <div className="mt-8 flex flex-wrap gap-3">
           <Link 
-            to="/profile/edit" 
+            to="/profile/settings" 
             className="inline-flex items-center px-4 py-2 bg-[#363a94] text-white rounded-lg hover:bg-[#2a2d73] transition-colors"
           >
             <FiEdit2 className="mr-2" />
-            Edit Profile
+            Account Settings
           </Link>
           
           <Link 
@@ -401,7 +401,7 @@ const Profile = () => {
               </div>
               
               <Link 
-                to="/change-password" 
+                to="/profile/settings?tab=password" 
                 className="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors md:self-start"
               >
                 <FiKey className="mr-2" />
