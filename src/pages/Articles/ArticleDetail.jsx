@@ -13,6 +13,7 @@ const ArticleDetail = () => {
   const [error, setError] = useState(null);
   const [relatedArticles, setRelatedArticles] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const contentRef = useRef(null);
   
   // Fetch article on component mount
@@ -84,6 +85,27 @@ const ArticleDetail = () => {
     // Scroll to top when article page loads
     window.scrollTo(0, 0);
   }, [id]);
+
+  // Effect to handle article content images
+  useEffect(() => {
+    // Apply styles to all images in the article content
+    if (contentRef.current) {
+      const images = contentRef.current.querySelectorAll('img');
+      images.forEach(img => {
+        // Add classes for responsive behavior and consistent styling
+        img.classList.add('rounded-lg', 'my-4', 'mx-auto', 'shadow-md', 'max-w-full', 'w-auto', 'h-auto', 'object-contain');
+        
+        // Add error handling
+        img.onerror = () => {
+          img.src = 'https://via.placeholder.com/800x400?text=Image+Not+Available';
+          img.alt = 'Image not available';
+        };
+        
+        // Add loading="lazy" attribute for better performance
+        img.loading = 'lazy';
+      });
+    }
+  }, [article]);
   
   if (loading) {
     return (
@@ -250,22 +272,33 @@ const ArticleDetail = () => {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="lg:col-span-8"
           >
-            {/* Featured Image */}
-            <div className="rounded-2xl overflow-hidden shadow-lg mb-10">
-              <img 
-                src={article.image} 
-                alt={article.title}
-                className="w-full h-auto max-h-[500px] object-cover"
-                onError={(e) => {e.target.src = 'https://via.placeholder.com/1200x600?text=No+Image'}}
-              />
+            {/* Featured Image - Fixed to work with any image size */}
+            <div className="rounded-2xl overflow-hidden shadow-lg mb-10 bg-gray-100">
+              <div className="relative flex items-center justify-center min-h-[300px]">
+                {!imageLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+                <img 
+                  src={article.image} 
+                  alt={article.title}
+                  className={`w-auto max-w-full max-h-[600px] object-contain transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => setImageLoaded(true)}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/1200x600?text=No+Image';
+                    setImageLoaded(true);
+                  }}
+                />
+              </div>
             </div>
             
-            {/* Article Content */}
+            {/* Article Content - Enhanced styles and better image handling */}
             <div 
               ref={contentRef}
-              className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-p:text-gray-700 prose-a:text-indigo-600 prose-a:font-medium prose-a:no-underline hover:prose-a:text-indigo-500 prose-img:rounded-xl prose-img:shadow-md"
-          dangerouslySetInnerHTML={{ __html: article.content }}
-        />
+              className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-p:text-gray-700 prose-a:text-indigo-600 prose-a:font-medium prose-a:no-underline hover:prose-a:text-indigo-500 prose-img:rounded-xl prose-img:shadow-md prose-img:mx-auto prose-img:max-w-full prose-img:object-contain"
+              dangerouslySetInnerHTML={{ __html: article.content }}
+            />
 
             {/* Share Article */}
             <div className="mt-12 border-t border-gray-200 pt-8">
@@ -329,7 +362,7 @@ const ArticleDetail = () => {
                       className="group block"
                     >
                       <div className="flex items-start">
-                        <div className="h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden mr-4">
+                        <div className="h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden mr-4 bg-gray-100">
                           <img
                             src={related.image}
                             alt={related.title}
@@ -404,7 +437,7 @@ const ArticleDetail = () => {
                 >
                   <Link to={`/articles/${related._id}`} className="block h-full">
                     <div className="bg-white rounded-xl overflow-hidden shadow-md h-full flex flex-col">
-                      <div className="h-48 overflow-hidden">
+                      <div className="h-48 overflow-hidden bg-gray-100">
                         <img 
                           src={related.image}
                           alt={related.title}
