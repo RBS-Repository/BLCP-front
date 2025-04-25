@@ -74,6 +74,24 @@ const EditProduct = () => {
     }
   }, [id, user]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'targetMarketKeyFeatures' || name === 'targetMarket') {
+      // Split by line breaks and filter empty lines
+      const lines = value.split('\n').filter(line => line.trim() !== '');
+      setProduct(prev => ({ ...prev, [name]: lines }));
+    } else if (name === 'stock' || name === 'minOrder') {
+      const numValue = value === '' ? 0 : parseInt(value, 10);
+      setProduct(prev => ({ ...prev, [name]: numValue }));
+    } else if (name === 'price') {
+      const numValue = value === '' ? '' : Number(value);
+      setProduct(prev => ({ ...prev, [name]: numValue }));
+    } else {
+      setProduct(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -346,7 +364,141 @@ const EditProduct = () => {
 
         {/* Basic product fields */}
         <div className="space-y-4">
-          {/* ... other form fields ... */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+            <input
+              type="text"
+              name="name"
+              value={product.name || ''}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea
+              name="description"
+              value={product.description || ''}
+              onChange={handleChange}
+              rows={6}
+              style={{ whiteSpace: 'pre-wrap' }}
+              wrap="soft"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+              required
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              <FaInfoCircle className="inline mr-1" />
+              Detailed product description. Line breaks will be preserved when displayed.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+              <input
+                type="number"
+                name="price"
+                value={product.price || ''}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <input
+                type="text"
+                name="category"
+                value={product.category || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+              <input
+                type="number"
+                name="stock"
+                value={product.stock || 0}
+                onChange={handleChange}
+                min="0"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Order</label>
+              <input
+                type="number"
+                name="minOrder"
+                value={product.minOrder || 1}
+                onChange={handleChange}
+                min="1"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Target Market</label>
+              <textarea
+                name="targetMarket"
+                value={Array.isArray(product.targetMarket) ? product.targetMarket.join('\n') : product.targetMarket || ''}
+                onChange={handleChange}
+                rows={4}
+                style={{ whiteSpace: 'pre-wrap' }}
+                wrap="soft"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                placeholder="One item per line"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                <FaInfoCircle className="inline mr-1" />
+                Enter each target market on a new line
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Key Features</label>
+              <textarea
+                name="targetMarketKeyFeatures"
+                value={Array.isArray(product.targetMarketKeyFeatures) ? product.targetMarketKeyFeatures.join('\n') : product.targetMarketKeyFeatures || ''}
+                onChange={handleChange}
+                rows={4}
+                style={{ whiteSpace: 'pre-wrap' }}
+                wrap="soft"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                placeholder="One feature per line"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                <FaInfoCircle className="inline mr-1" />
+                Enter each feature on a new line
+              </p>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              name="status"
+              value={product.status || 'active'}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
         </div>
 
         {/* Image upload fields */}

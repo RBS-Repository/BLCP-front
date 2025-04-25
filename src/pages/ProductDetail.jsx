@@ -110,6 +110,11 @@ const ProductDetail = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
 
+  // New state for variations
+  const [selectedVariation, setSelectedVariation] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [availableVariations, setAvailableVariations] = useState([]);
+
   // Handle going back
   const handleGoBack = () => {
     navigate(-1);
@@ -233,19 +238,235 @@ const ProductDetail = () => {
     }
   }, [product, isInWishlist]);
 
-  // Cart functions
+  // Function to determine if all options are selected
+  const allOptionsSelected = () => {
+    if (!product?.hasVariations) return true;
+    
+    // Check if all variation types have a selected option
+    return product.variationTypes.every(type => 
+      selectedOptions[type.name] !== undefined
+    );
+  };
+
+  // Function to find matching variation based on selected options
+  const findMatchingVariation = () => {
+    if (!product?.hasVariations || !allOptionsSelected()) return null;
+    
+    // Find a variation that matches all selected options
+    return product.variations.find(variation => {
+      // Make sure we handle both Map and plain object formats for optionValues
+      for (const [typeName, optionName] of Object.entries(selectedOptions)) {
+        const optionValues = variation.optionValues || {};
+        const varOptionValue = optionValues[typeName];
+        
+        // If any option doesn't match, this isn't the right variation
+        if (varOptionValue !== optionName) {
+          return false;
+        }
+      }
+      
+      // All options matched
+      return true;
+    });
+  };
+
+  // Handle option selection
+  const handleOptionSelect = (typeName, optionName) => {
+    console.log(`Selecting ${typeName}: ${optionName}`);
+    
+    // Update selected options
+    setSelectedOptions(prev => {
+      const newOptions = { ...prev, [typeName]: optionName };
+      console.log('New selected options:', newOptions);
+      return newOptions;
+    });
+  };
+
+  // Get available options for a specific variation type based on current selections
+  const getAvailableOptions = (typeName) => {
+    if (!product?.hasVariations) return [];
+    
+    // Create a copy of all variations to work with
+    const variations = [...product.variations];
+    
+    // Filter variations that match current selections (excluding the current type)
+    const compatibleVariations = variations.filter(variation => {
+      // For each selected option (except the one we're finding options for)
+      for (const [currentTypeName, selectedOption] of Object.entries(selectedOptions)) {
+        // Skip the type we're currently finding options for
+        if (currentTypeName === typeName) continue;
+        
+        // Get the option value from this variation
+        const optionValues = variation.optionValues || {};
+        const varOptionValue = optionValues[currentTypeName];
+        
+        // If this variation doesn't match our current selection, exclude it
+        if (varOptionValue !== selectedOption) {
+          return false;
+        }
+      }
+      return true;
+    });
+    
+    // Extract all available options for this type from compatible variations
+    const availableOptions = new Set();
+    
+    compatibleVariations.forEach(variation => {
+      const optionValues = variation.optionValues || {};
+      const optionValue = optionValues[typeName];
+      
+      if (optionValue) {
+        availableOptions.add(optionValue);
+      }
+    });
+    
+    return Array.from(availableOptions);
+  };
+
+  // Modified price getter to account for variations and partial selections
+  const getPrice = () => {
+    if (product?.hasVariations) {
+      // If all options are selected, try to find an exact matching variation
+      if (allOptionsSelected()) {
+        const matchingVariation = findMatchingVariation();
+        if (matchingVariation) {
+          return matchingVariation.price;
+        }
+      }
+      
+      // If no exact match or incomplete selection, calculate price adjustments
+      if (Object.keys(selectedOptions).length > 0 && product.variationTypes) {
+        let adjustedPrice = product.price;
+        
+        // Add price adjustments for each selected option
+        Object.entries(selectedOptions).forEach(([typeName, optionName]) => {
+          // Find the variation type
+          const variationType = product.variationTypes.find(type => type.name === typeName);
+          if (variationType) {
+            // Find the selected option
+            const option = variationType.options.find(opt => opt.name === optionName);
+            if (option && option.priceAdjustment) {
+              adjustedPrice += option.priceAdjustment;
+            }
+          }
+        });
+        
+        return adjustedPrice;
+      }
+      
+      // Default to base price if no selections or adjustments
+      return product.price;
+    }
+    return product?.price || 0;
+  };
+
+  const getStock = () => {
+    if (product?.hasVariations && selectedVariation) {
+      return selectedVariation.stock;
+    }
+    return product?.stock || 0;
+  };
+
+  // Modified useEffect to update selected variation when options change
+  useEffect(() => {
+    if (product?.hasVariations) {
+      const matchingVariation = findMatchingVariation();
+      setSelectedVariation(matchingVariation);
+      
+      // If we have a selected variation and it has its own image, show it
+      if (matchingVariation && matchingVariation.image) {
+        // Find the index of this image in the product images array
+        const imageIndex = product.images.findIndex(img => img === matchingVariation.image);
+        if (imageIndex >= 0) {
+          setSelectedImage(imageIndex);
+        }
+      }
+    }
+  }, [selectedOptions, product]);
+
+  // Initialize selectedOptions when product loads
+  useEffect(() => {
+    if (!product?.hasVariations || !product.variationTypes?.length) return;
+    
+    console.log('Initializing product variations - no defaults selected');
+    
+    // Reset selected options to empty state
+    setSelectedOptions({});
+    setSelectedVariation(null);
+    
+    // No default selection - user must select options manually
+  }, [product]);
+
+  // Modified handleCartAction to include variation data but allow base product
   const handleCartAction = async () => {
+    if (!user) {
+      toast.error('Please log in to add items to your cart');
+      navigate('/login');
+      return;
+    }
+
+    // For products with variations, use the selected variations if complete, 
+    // otherwise use the base product
+    let currentVariation = null;
+    if (product?.hasVariations && allOptionsSelected()) {
+      currentVariation = findMatchingVariation();
+    }
+
+    // Check stock based on variation or base product
+    const relevantStock = currentVariation ? currentVariation.stock : product.stock;
+    if (relevantStock < quantity) {
+      toast.error(`Sorry, only ${relevantStock} items are available`);
+      return;
+    }
+
     setProcessing(true);
     try {
       if (inCart) {
-        await removeFromCart(product._id);
-        toast.success('Product removed from cart');
+        // If removing from cart, pass the variation SKU if applicable
+        const variationSku = currentVariation ? currentVariation.sku : null;
+        await removeFromCart(product._id, variationSku);
+        toast.success(`${product.name} removed from cart`);
+        setInCart(false);
       } else {
-        await addToCart(product, quantity);
-        toast.success('Product added to cart');
+        // If adding to cart, include all necessary variation data if a complete set is selected
+        const cartItem = {
+          productId: product._id,
+          quantity,
+          name: product.name,
+          price: getPrice(),
+          image: product.images[0] || product.image || '/placeholder.jpg'
+        };
+
+        // Add variation data if all variation options are selected
+        if (product?.hasVariations && allOptionsSelected()) {
+          // If we have a complete variation match, use its SKU and price
+          if (currentVariation) {
+            cartItem.variationSku = currentVariation.sku;
+            // Use the complete variation's exact price
+            cartItem.price = currentVariation.price;
+            
+            // Include the selected options
+            cartItem.variationOptions = { ...selectedOptions }; 
+            
+            // Generate a descriptive display name for the variation that includes types
+            const variantName = Object.entries(selectedOptions)
+              .map(([type, value]) => `${type}: ${value}`)
+              .join(' | ');
+              
+            cartItem.variationDisplay = variantName;
+          }
+        } else if (product?.hasVariations && Object.keys(selectedOptions).length > 0) {
+          // If partial selection, show a warning but still allow adding to cart
+          toast.info('Adding base product without complete variation selection');
+        }
+
+        await addToCart(cartItem);
+        toast.success(`${product.name} added to cart!`);
+        setInCart(true);
       }
     } catch (err) {
-      toast.error(err.message);
+      console.error('Cart operation failed:', err);
+      toast.error(err.message || 'Failed to update cart. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -696,6 +917,36 @@ const ProductDetail = () => {
                 {user && user.emailVerified ? (
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-gray-500 mb-1">Price</span>
+                    {product?.hasVariations && Object.keys(selectedOptions).length > 0 && !allOptionsSelected() ? (
+                      <div className="flex flex-col">
+                        <span className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-[#363a94] to-[#5a60c0] bg-clip-text text-transparent">
+                          ₱{getPrice().toLocaleString()}
+                        </span>
+                        <div className="mt-1 text-sm text-gray-600">
+                          <span className="font-medium">Base price:</span> ₱{product.price.toLocaleString()}
+                          {Object.entries(selectedOptions).map(([typeName, optionName]) => {
+                            // Find the variation type
+                            const variationType = product.variationTypes.find(type => type.name === typeName);
+                            if (variationType) {
+                              // Find the selected option
+                              const option = variationType.options.find(opt => opt.name === optionName);
+                              if (option && option.priceAdjustment) {
+                                const adjustmentSign = option.priceAdjustment > 0 ? '+' : '';
+                                return (
+                                  <div key={typeName} className="flex items-center mt-1">
+                                    <span className="text-gray-600">{typeName}: {optionName}</span>
+                                    <span className={`ml-1 ${option.priceAdjustment > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                      ({adjustmentSign}₱{option.priceAdjustment.toLocaleString()})
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            }
+                            return null;
+                          })}
+                        </div>
+                      </div>
+                    ) : (
                     <span 
                       className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-[#363a94] to-[#5a60c0] bg-clip-text text-transparent" 
                       itemProp="offers" 
@@ -703,9 +954,10 @@ const ProductDetail = () => {
                       itemType="https://schema.org/Offer"
                     >
                       <meta itemProp="priceCurrency" content="PHP" />
-                      <span itemProp="price" content={product.price}>₱{product.price.toLocaleString()}</span>
+                        <span itemProp="price" content={getPrice()}>₱{getPrice().toLocaleString()}</span>
                       <link itemProp="availability" href={product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"} />
                     </span>
+                    )}
                   </div>
                 ) : (
                   <div className="text-gray-700 bg-gray-50 border border-gray-200 p-5 rounded-lg shadow-sm">
@@ -820,7 +1072,9 @@ const ProductDetail = () => {
                       aria-labelledby="description-tab"
                       itemProp="description"
                     >
-                      <p className="text-base leading-relaxed">{product.description}</p>
+                      <div className="description-content p-2">
+                        <ExpandableDescription description={product.description} />
+                      </div>
                     </motion.div>
                   )}
 
@@ -836,7 +1090,7 @@ const ProductDetail = () => {
                       aria-labelledby="features-tab"
                       className="rounded-lg bg-gray-50/50 p-5 border border-gray-100"
                     >
-                      <ul className="space-y-4 divide-y divide-gray-100" itemProp="additionalProperty" itemScope itemType="https://schema.org/PropertyValue">
+                      <ul className="space-y-4 divide-y divide-gray-100 overflow-auto max-h-[400px]" itemProp="additionalProperty" itemScope itemType="https://schema.org/PropertyValue">
                         <meta itemProp="name" content="Product Features" />
                         {(() => {
                           const keyFeatures =
@@ -858,7 +1112,7 @@ const ProductDetail = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                 </span>
-                                <span className="text-gray-700 text-base" itemProp="value">{feature.trim()}</span>
+                                <span className="text-gray-700 text-base break-words" itemProp="value">{feature.trim()}</span>
                               </li>
                             ));
                         })()}
@@ -878,15 +1132,15 @@ const ProductDetail = () => {
                       aria-labelledby="market-tab"
                       className="rounded-lg bg-gray-50/50 p-5 border border-gray-100"
                     >
-                      <ul className="space-y-3 divide-y divide-gray-100">
+                      <ul className="space-y-3 divide-y divide-gray-100 overflow-auto max-h-[400px]">
                         {product.targetMarket && product.targetMarket.map((market, index) => (
-                          <li key={`market-${index}`} className={`flex items-center gap-3 pt-3 ${index === 0 ? 'pt-0' : ''}`}>
-                            <span className="flex-shrink-0 p-1 bg-[#363a94]/10 rounded-full">
+                          <li key={`market-${index}`} className={`flex items-start gap-3 pt-3 ${index === 0 ? 'pt-0' : ''}`}>
+                            <span className="flex-shrink-0 p-1 bg-[#363a94]/10 rounded-full mt-1">
                               <svg className="h-4 w-4 text-[#363a94]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </span>
-                            <span className="text-gray-700 text-base">{market}</span>
+                            <span className="text-gray-700 text-base break-words">{market}</span>
                           </li>
                         ))}
                       </ul>
@@ -896,108 +1150,304 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Order Details */}
-            <div className="bg-white rounded-lg p-6 mb-6 border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm text-gray-500">Minimum Order</p>
-                  <p className="text-lg font-medium text-gray-900">{product.minOrder} pcs</p>
-                </div>
-                {user && (
-                  <div>
-                    <p className="text-sm text-gray-500">Available Stock</p>
-                    <p className={`text-lg font-medium ${product.stock > 10 ? 'text-green-600' : product.stock > 0 ? 'text-orange-600' : 'text-red-600'}`}>
-                      {product.stock || "Out of stock"}
-                    </p>
-                  </div>
-                )}
-              </div>
+            {/* Product Variations */}
+            {product?.hasVariations && (
+              <div className={`product-variations mt-6 space-y-4 p-4 rounded-lg ${!allOptionsSelected() ? 'bg-blue-50/50 border border-blue-100' : 'bg-gray-50 border border-gray-100'}`}>
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center justify-between">
+                  <span className="flex items-center">
+                    <svg className="w-4 h-4 text-blue-500 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Available Options
+                    <span className="text-xs font-normal text-blue-600 ml-1">(optional)</span>
+                  </span>
+                  
+                  <span className="text-xs bg-gray-100 rounded-full px-2 py-0.5">
+                    {Object.keys(selectedOptions).length} of {product.variationTypes.length} selected
+                  </span>
+                </h3>
+                
+                {product.variationTypes.map((type) => (
+                  <div key={type.name} className={`variation-type mb-5 ${selectedOptions[type.name] ? '' : 'pb-2 border-b border-blue-100/50'}`}>
+                    <label className="block text-sm font-medium mb-2 flex items-center">
+                      <span className={`${selectedOptions[type.name] ? 'text-gray-700' : 'text-blue-700'}`}>
+                        {type.name}
+                      </span>
+                      {!selectedOptions[type.name] && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100/50 text-blue-700">
+                          Select
+                        </span>
+                      )}
+                      {selectedOptions[type.name] && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          {selectedOptions[type.name]}
+                        </span>
+                      )}
+                    </label>
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                      {type.options.map((option) => {
+                        // Check if this option is available based on other selections
+                        const availableOptions = getAvailableOptions(type.name);
+                        const isAvailable = availableOptions.includes(option.name);
+                        const isSelected = selectedOptions[type.name] === option.name;
 
-              {user ? (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="text-gray-700 font-medium">Quantity:</span>
-                    <div className="flex items-center rounded-lg border border-gray-300 overflow-hidden shadow-sm">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleQuantityChange(quantity - 1)}
-                        disabled={quantity <= product.minOrder}
-                        className="px-3.5 py-2.5 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 transition-colors text-gray-600 border-r border-gray-200"
-                        aria-label="Decrease quantity"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                        </svg>
-                      </motion.button>
+                        // Determine if this is a color/shade option
+                        const isColorOption = type.name.toLowerCase().includes('color') || 
+                                            type.name.toLowerCase().includes('shade') ||
+                                            type.name.toLowerCase().includes('tone');
+
+                        // For color options, create color swatches
+                        if (isColorOption) {
+                          // Try to determine a color value from the option name
+                          // This is a simple implementation - in production you'd want to map specific names to specific colors
+                          const getColorFromName = (name) => {
+                            const lowerName = name.toLowerCase();
+                            if (lowerName.includes('light')) return '#FFE4C4'; // Light beige
+                            if (lowerName.includes('medium')) return '#D2B48C'; // Medium beige/tan
+                            if (lowerName.includes('dark')) return '#8B4513'; // Dark brown
+                            if (lowerName.includes('fair')) return '#FFDAB9'; // Fair skin
+                            if (lowerName.includes('tan')) return '#D2B48C'; // Tan
+                            if (lowerName.includes('deep')) return '#8B4513'; // Deep brown
+                            // Colors
+                            if (lowerName.includes('red')) return '#FF0000';
+                            if (lowerName.includes('pink')) return '#FFC0CB';
+                            if (lowerName.includes('coral')) return '#FF7F50';
+                            if (lowerName.includes('nude')) return '#E3BC9A';
+                            if (lowerName.includes('natural')) return '#D2B48C';
+                            
+                            // Default color for unmatched shade names
+                            return '#CCCCCC';
+                          };
+                          
+                          const colorValue = getColorFromName(option.name);
+                          
+                          return (
+                            <button
+                              key={option.name}
+                              type="button"
+                              aria-pressed={isSelected}
+                              className={`color-swatch w-8 h-8 rounded-full relative border transition-all duration-200 ${
+                                isSelected 
+                                  ? 'ring-2 ring-offset-2 ring-indigo-600 border-indigo-600 scale-110'
+                                  : 'border-gray-300'
+                              } ${
+                                !isAvailable 
+                                  ? 'opacity-40 cursor-not-allowed'
+                                  : 'cursor-pointer hover:opacity-90 hover:scale-105 active:scale-95'
+                              }`}
+                              style={{ backgroundColor: colorValue }}
+                              onClick={() => {
+                                if (isAvailable) {
+                                  if (isSelected) {
+                                    // If already selected, unselect it by removing it from selectedOptions
+                                    setSelectedOptions(prev => {
+                                      const newOptions = { ...prev };
+                                      delete newOptions[type.name];
+                                      return newOptions;
+                                    });
+                                  } else {
+                                    // If not selected and available, select it
+                                    handleOptionSelect(type.name, option.name);
+                                  }
+                                }
+                              }}
+                              disabled={!isAvailable}
+                              title={`${option.name}${!isAvailable ? ' (Not available with current selection)' : ''}`}
+                              aria-label={`${type.name}: ${option.name}${!isAvailable ? ' (Not available with current selection)' : ''}`}
+                            >
+                              {isSelected && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white drop-shadow-md" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        }
+                        
+                        // For size options
+                        if (type.name.toLowerCase().includes('size') || type.name.toLowerCase().includes('volume')) {
+                          return (
+                            <button
+                              key={option.name}
+                              type="button"
+                              aria-pressed={isSelected}
+                              className={`relative px-3 py-2 min-w-[60px] rounded-md text-sm font-medium transition-all duration-200 ${
+                                isSelected
+                                  ? 'bg-indigo-600 text-white scale-105 shadow-md'
+                                  : isAvailable
+                                    ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm hover:scale-105 active:scale-95'
+                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              }`}
+                              onClick={() => {
+                                if (isAvailable) {
+                                  if (isSelected) {
+                                    // If already selected, unselect it by removing it from selectedOptions
+                                    setSelectedOptions(prev => {
+                                      const newOptions = { ...prev };
+                                      delete newOptions[type.name];
+                                      return newOptions;
+                                    });
+                                  } else {
+                                    // If not selected and available, select it
+                                    handleOptionSelect(type.name, option.name);
+                                  }
+                                }
+                              }}
+                              disabled={!isAvailable}
+                              title={`${option.name}${!isAvailable ? ' (Not available with current selection)' : ''}`}
+                            >
+                              {option.name}
+                              {option.priceAdjustment !== 0 && (
+                                <span className={`ml-1 text-xs font-normal ${option.priceAdjustment > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                  {option.priceAdjustment > 0 ? `+₱${option.priceAdjustment}` : `-₱${Math.abs(option.priceAdjustment)}`}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        }
+                        
+                        // Default style for other types of options
+                        return (
+                          <button
+                            key={option.name}
+                            type="button"
+                            aria-pressed={isSelected}
+                            className={`relative px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white scale-105 shadow-md'
+                                : isAvailable
+                                  ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm hover:scale-105 active:scale-95'
+                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            }`}
+                            onClick={() => {
+                              if (isAvailable) {
+                                if (isSelected) {
+                                  // If already selected, unselect it by removing it from selectedOptions
+                                  setSelectedOptions(prev => {
+                                    const newOptions = { ...prev };
+                                    delete newOptions[type.name];
+                                    return newOptions;
+                                  });
+                                } else {
+                                  // If not selected and available, select it
+                                  handleOptionSelect(type.name, option.name);
+                                }
+                              }
+                            }}
+                            disabled={!isAvailable}
+                            title={`${option.name}${!isAvailable ? ' (Not available with current selection)' : ''}`}
+                          >
+                            {option.name}
+                            {option.priceAdjustment !== 0 && (
+                              <span className={`ml-1 text-xs font-normal ${option.priceAdjustment > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {option.priceAdjustment > 0 ? `+₱${option.priceAdjustment}` : `-₱${Math.abs(option.priceAdjustment)}`}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Quantity Selector */}
+            <div className="quantity-selector mt-6">
+              <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                Quantity
+              </label>
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  className="bg-gray-200 text-gray-600 p-2 rounded-l-md hover:bg-gray-300"
+                  onClick={() => handleQuantityChange(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                >
+                  -
+                </button>
                       <input
                         type="number"
+                  id="quantity"
+                  name="quantity"
+                  min="1"
+                  max={getStock()}
                         value={quantity}
-                        onChange={(e) => {
-                          const newValue = parseInt(e.target.value) || product.minOrder;
-                          handleQuantityChange(Math.max(product.minOrder, newValue));
-                        }}
-                        min={product.minOrder}
-                        className="w-16 text-center border-none focus:ring-0 focus:outline-none font-medium"
-                        aria-label="Quantity"
-                      />
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
+                  onChange={(e) => handleQuantityChange(parseInt(e.target.value, 10))}
+                  className="w-16 text-center border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  className="bg-gray-200 text-gray-600 p-2 rounded-r-md hover:bg-gray-300"
                         onClick={() => handleQuantityChange(quantity + 1)}
-                        className="px-3.5 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-gray-600 border-l border-gray-200"
-                        aria-label="Increase quantity"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12M6 12h12" />
-                        </svg>
-                      </motion.button>
-                    </div>
-
-                    {user.emailVerified && (
-                      <div className="ml-auto text-gray-700 font-medium">
-                        Total: 
-                        <span className="ml-1 text-[#363a94] font-bold">
-                          ₱{(product.price * quantity).toLocaleString()}
+                  disabled={quantity >= getStock()}
+                >
+                  +
+                </button>
+                <span className="ml-3 text-sm text-gray-500">
+                  {getStock()} available
                         </span>
                       </div>
-                    )}
                   </div>
 
-                  <div className="flex space-x-4 mt-6">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleCartAction}
-                      disabled={processing || !isEmailVerified}
-                      className={`flex-1 py-3 px-6 rounded-lg font-medium flex items-center justify-center space-x-2 shadow-sm ${
+            {/* Add to Cart / Wishlist Buttons */}
+            <div className="actions-container mt-6 space-y-4">
+              <button
+                type="button"
+                className={`w-full flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium ${
                         inCart 
-                          ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white' 
-                          : 'bg-gradient-to-r from-[#363a94] to-[#5a60c0] hover:from-[#2a2d73] hover:to-[#4950a3] text-white'
-                      } transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#363a94] disabled:opacity-70 disabled:cursor-not-allowed`}
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : getStock() > 0
+                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                onClick={handleCartAction}
+                disabled={processing || getStock() === 0}
                     >
                       {processing ? (
-                        <div className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          <span>{inCart ? 'Removing...' : 'Adding...'}</span>
-                        </div>
-                      ) : inCart ? (
-                        <>
-                          <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    Processing...
+                  </>
+                ) : inCart ? (
+                  'Remove from Cart'
+                ) : getStock() > 0 ? (
+                  product?.hasVariations && !allOptionsSelected() ? (
+                    'Add Base Product to Cart'
+                  ) : (
+                    'Add to Cart'
+                  )
+                ) : (
+                  'Out of Stock'
+                )}
+              </button>
+              
+              {/* Information message for variations */}
+              {product?.hasVariations && !allOptionsSelected() && (
+                <div className="mt-2 bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
+                  <div className="flex">
+                    <svg className="h-5 w-5 text-blue-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          Remove from Cart
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          Add to Cart
-                        </>
-                      )}
-                    </motion.button>
+                    <div>
+                      <p className="font-medium">You're adding the standard version without selecting any options.</p>
+                      <p className="mt-1">Select your preferred options for a customized product:</p>
+                      <ul className="mt-1 pl-5 list-disc space-y-1">
+                        {product.variationTypes.map(type => (
+                          !selectedOptions[type.name] && (
+                            <li key={type.name}>{type.name}</li>
+                          )
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
                     
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -1016,109 +1466,7 @@ const ProductDetail = () => {
                         />
                       </motion.div>
                     </motion.button>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center bg-white p-4 rounded-lg border border-gray-200">
-                  <p className="text-gray-700 mb-4">Log in to place orders and access wholesale pricing.</p>
-                  <Link to="/login">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 bg-gradient-to-r from-[#363a94] to-[#5a60c0] hover:from-[#2a2d73] hover:to-[#4950a3] text-white font-medium rounded-lg transition-colors shadow-sm"
-                    >
-                      Log in to Access Wholesale Pricing
-                    </motion.button>
-                  </Link>
-                  <Link to="/signup" className="block mt-3 text-[#363a94] hover:underline text-sm">
-                    New customer? Create an account
-                  </Link>
                 </div>
-              )}
-            </div>
-
-            {/* Help & Support */}
-            <div className="bg-gradient-to-r from-[#363a94]/5 to-[#5a60c0]/5 rounded-lg p-5 flex items-center gap-4 border border-[#363a94]/10">
-              <div className="p-2.5 rounded-full bg-[#363a94]/10 flex-shrink-0">
-                <svg className="w-5 h-5 text-[#363a94]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Need help with this product?</p>
-                <div className="mt-1 flex items-center space-x-3">
-                  <Link
-                    to="/faq"
-                    className="text-sm text-[#363a94] hover:text-[#5a60c0] font-medium hover:underline flex items-center"
-                  >
-                    <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    View FAQs
-                  </Link>
-                  <span className="text-gray-300">|</span>
-                  <Link
-                    to="/contact"
-                    className="text-sm text-[#363a94] hover:text-[#5a60c0] font-medium hover:underline flex items-center"
-                  >
-                    <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Contact Support
-                  </Link>
-                </div>
-              </div>
-            </div>
-            
-            {/* Email Verification Notice - Only show if user is logged in but not verified */}
-            {user && !isEmailVerified && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.5 }}
-                className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 shadow-sm"
-              >
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <svg className="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-amber-800">Verify your email</h3>
-                    <div className="mt-1 text-sm text-amber-700">
-                      <p>To access all features including checkout, please verify your email address.</p>
-                    </div>
-                    <div className="mt-3">
-                      <button
-                        onClick={handleSendVerification}
-                        disabled={sendingVerification}
-                        className={`text-xs px-3 py-1.5 rounded-md font-medium inline-flex items-center ${
-                          sendingVerification 
-                            ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                            : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                        } transition-colors`}
-                      >
-                        {sendingVerification ? (
-                          <>
-                            <svg className="animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-amber-700" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <MdEmail className="mr-1.5" aria-hidden="true" />
-                            Send Verification Email
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
           </motion.div>
         </div>
 
@@ -1263,6 +1611,93 @@ const ProductDetail = () => {
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+const ExpandableDescription = ({ description }) => {
+  const [expanded, setExpanded] = useState(false);
+  const MAX_LENGTH = 300; // Characters to show in collapsed state
+  
+  if (!description || description.length <= MAX_LENGTH) {
+    return (
+      <div>
+        {description && description.split('\n').map((paragraph, index) => (
+          paragraph.trim() ? (
+            <p key={`desc-para-${index}`} className="text-base leading-relaxed mb-4 break-words">
+              {paragraph}
+            </p>
+          ) : <br key={`desc-break-${index}`} />
+        ))}
+      </div>
+    );
+  }
+  
+  return (
+    <div>
+      <div 
+        className={`transition-all duration-500 ${
+          !expanded 
+            ? 'max-h-[300px] overflow-hidden relative' 
+            : 'max-h-[400px] overflow-auto custom-scrollbar rounded-lg bg-gray-50/50 border border-gray-100 p-4'
+        }`}
+      >
+        {description.split('\n').map((paragraph, index) => (
+          paragraph.trim() ? (
+            <p key={`desc-para-${index}`} className="text-base leading-relaxed mb-4 break-words">
+              {paragraph}
+            </p>
+          ) : <br key={`desc-break-${index}`} />
+        ))}
+        
+        {!expanded && (
+          <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-white to-transparent"></div>
+        )}
+      </div>
+      
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="mt-4 text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
+      >
+        {expanded ? 'Show Less' : 'Read More'}
+        <svg className={`ml-1 w-4 h-4 transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Custom scrollbar styles */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #b7b9e0;
+          border-radius: 10px;
+          transition: all 0.3s ease;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #363a94;
+        }
+
+        /* Firefox */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #b7b9e0 #f1f1f1;
+        }
+
+        /* Ensure padding for browsers with permanent scrollbars */
+        .custom-scrollbar {
+          padding-right: 10px;
+        }
+      `}</style>
     </div>
   );
 };
