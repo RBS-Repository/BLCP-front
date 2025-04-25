@@ -81,9 +81,13 @@ export default defineConfig(({ mode }) => {
         output: {
           // Improved chunking strategy to reduce main thread work
           manualChunks: (id) => {
-            // Core framework chunks
+            // React and all related packages must be bundled together
+            // to ensure internal APIs like unstable_scheduleCallback work correctly
             if (id.includes('node_modules/react') || 
-                id.includes('node_modules/react-dom')) {
+                id.includes('node_modules/react-dom') ||
+                id.includes('node_modules/scheduler') ||
+                id.includes('node_modules/use-sync-external-store') ||
+                id.includes('node_modules/react-reconciler')) {
               return 'vendor-react';
             }
             
@@ -193,6 +197,7 @@ export default defineConfig(({ mode }) => {
         '@emotion/styled', 
         'react', 
         'react-dom', 
+        'scheduler', // Explicitly include scheduler
         'react-router-dom',
         'framer-motion',
         'lodash'
