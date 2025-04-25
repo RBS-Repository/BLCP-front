@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "pnpm install --production=false && pnpm run build:vercel",
+  "buildCommand": "pnpm install --production=false && pnpm run build",
   "outputDirectory": "dist",
   "devCommand": "pnpm run dev",
   "installCommand": "pnpm install --production=false",

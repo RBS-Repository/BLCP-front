@@ -11,50 +11,21 @@ export const initBfCacheOptimizer = () => {
   // Check if bfcache is supported via performance navigation type
   const isBfCacheSupported = 'PerformanceNavigationTiming' in window;
   
-  // Make sure we don't run this multiple times
-  if (window.__BF_CACHE_OPTIMIZER_INITIALIZED) {
-    return isBfCacheSupported;
-  }
-  
-  // Mark as initialized
-  window.__BF_CACHE_OPTIMIZER_INITIALIZED = true;
-  
-  // Remove known bfcache blockers - do this safely 
-  try {
-    removeBfCacheBlockers();
-  } catch (e) {
-    console.warn('Error removing bfcache blockers:', e);
-  }
-  
-  // Use a safer approach to add event listeners
-  const safeAddEventListener = (target, type, listener, options) => {
-    try {
-      target.addEventListener(type, listener, options);
-    } catch (e) {
-      console.warn(`Error adding ${type} listener:`, e);
-    }
-  };
+  // Remove known bfcache blockers
+  removeBfCacheBlockers();
   
   // Listen for page show/hide events to properly handle state
-  safeAddEventListener(window, 'pageshow', (event) => {
+  window.addEventListener('pageshow', (event) => {
     // If the page is loaded from bfcache
     if (event.persisted) {
       console.log('Page restored from bfcache');
       // Trigger any needed state refresh here
-      try {
-        refreshStaleData();
-      } catch (e) {
-        console.warn('Error refreshing stale data:', e);
-      }
+      refreshStaleData();
     }
   });
   
   // Report bfcache events for analytics/debugging
-  try {
-    reportBfCacheEvents();
-  } catch (e) {
-    console.warn('Error setting up bfcache reporting:', e);
-  }
+  reportBfCacheEvents();
   
   return isBfCacheSupported;
 };
@@ -63,10 +34,10 @@ export const initBfCacheOptimizer = () => {
  * Remove common issues that prevent bfcache from working
  */
 const removeBfCacheBlockers = () => {
-  // DON'T directly remove unload listeners - this can cause issues
-  // Instead, use a more targeted approach
+  // 1. Remove unload event listeners - these break bfcache
+  window.removeEventListener('unload', () => {});
   
-  // 1. Safe way to handle beforeunload
+  // 2. Handle beforeunload carefully - only add when needed (forms, etc)
   const beforeUnloadListener = (event) => {
     // Only prevent unload if user has unsaved changes 
     const hasUnsavedChanges = false; // Should be replaced with actual logic
@@ -77,11 +48,16 @@ const removeBfCacheBlockers = () => {
       return '';
     }
     
+    // Otherwise, remove the listener to allow bfcache
+    window.removeEventListener('beforeunload', beforeUnloadListener);
     return null;
   };
   
-  // Only add beforeunload for forms or pages with editable content when needed
+  // Only add beforeunload for forms or pages with editable content
   // window.addEventListener('beforeunload', beforeUnloadListener);
+  
+  // 3. Avoid using localStorage in page unload/visibility change events
+  // This is a common blocker for bfcache
 };
 
 /**
@@ -109,19 +85,15 @@ const reportBfCacheEvents = () => {
  * Refresh any data that might be stale when restoring from bfcache
  */
 const refreshStaleData = () => {
-  // Schedule this with setTimeout to avoid immediate execution
-  // This helps prevent conflicts with React's scheduler
-  setTimeout(() => {
-    // Refresh any time-sensitive data
-    // For example:
-    
-    // 1. Re-fetch API data that might be stale
-    // 2. Update timers or countdowns
-    // 3. Re-establish WebSocket connections
-    // 4. Clear any sensitive form data
-    
-    // This should be customized based on your app's needs
-  }, 0);
+  // Refresh any time-sensitive data
+  // For example:
+  
+  // 1. Re-fetch API data that might be stale
+  // 2. Update timers or countdowns
+  // 3. Re-establish WebSocket connections
+  // 4. Clear any sensitive form data
+  
+  // This should be customized based on your app's needs
 };
 
 /**

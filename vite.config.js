@@ -81,10 +81,9 @@ export default defineConfig(({ mode }) => {
         output: {
           // Improved chunking strategy to reduce main thread work
           manualChunks: (id) => {
-            // Core framework chunks - MODIFIED to include scheduler
+            // Core framework chunks
             if (id.includes('node_modules/react') || 
-                id.includes('node_modules/react-dom') ||
-                id.includes('node_modules/scheduler')) {
+                id.includes('node_modules/react-dom')) {
               return 'vendor-react';
             }
             
@@ -196,8 +195,7 @@ export default defineConfig(({ mode }) => {
         'react-dom', 
         'react-router-dom',
         'framer-motion',
-        'lodash',
-        'scheduler'
+        'lodash'
       ],
       esbuildOptions: {
         target: 'es2020', // Modern JS syntax for better tree-shaking

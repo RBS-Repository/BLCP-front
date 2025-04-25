@@ -47,17 +47,6 @@
     <!-- Include critical CSS directly instead of preloading -->
     <link rel="stylesheet" href="/src/styles/critical.css">
     
-    <!-- Simple error handling for React initialization issues -->
-    <script>
-      window.addEventListener('error', function(e) {
-        // Check if it's the specific scheduler error
-        if (e.message && e.message.includes('unstable_scheduleCallback')) {
-          console.error('Caught React scheduler error:', e);
-          // You could add a simple UI fallback here if needed
-        }
-      });
-    </script>
-    
     <!-- Google Analytics 4 tracking code -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-RCBZFJZCR4"></script>
     <script>
