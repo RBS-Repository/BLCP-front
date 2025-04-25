@@ -6,7 +6,9 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "prebuild": "node prebuild.js",
+    "build": "vite build --mode production",
+    "build:nopreop": "vite build --mode production",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "server": "node server/app.js",
@@ -15,9 +17,9 @@
     "start": "node -r dotenv/config app.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "optimize-images": "node scripts/optimize-images.js",
-    "prebuild": "npm run optimize-images",
     "analyze": "vite-bundle-analyzer",
-    "profile": "vite build --profile && vite preview"
+    "profile": "vite build --profile && vite preview",
+    "clean": "rimraf dist .vite node_modules/.vite"
   },
   "dependencies": {
     "@cloudinary/url-gen": "^1.21.0",
@@ -93,8 +95,10 @@
     "glob": "^10.3.10",
     "postcss": "^8.5.2",
     "react-window": "^1.8.10",
+    "rimraf": "^5.0.5",
     "sharp": "^0.33.2",
     "tailwindcss": "^3.4.17",
+    "terser": "^5.28.1",
     "vite": "^5.0.12",
     "vite-bundle-analyzer": "^0.9.0",
     "vite-plugin-compression": "^0.5.1",
