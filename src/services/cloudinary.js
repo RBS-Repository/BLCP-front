@@ -8,12 +8,7 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const API_URL = import.meta.env.VITE_CLOUDINARY_API_URL;
 
-// For debugging - log configuration on initialization
-console.log('Cloudinary environment variables available:', { 
-  cloudName: !!CLOUD_NAME, 
-  uploadPreset: !!UPLOAD_PRESET,
-  apiUrl: !!API_URL 
-});
+
 
 /**
  * Uploads a file to Cloudinary

@@ -208,9 +208,7 @@ const ProductDetail = () => {
             sameBrand: filterActiveProducts(sameBrand),
           });
         })
-        .catch(() => {
-          // Error silently - recommendations are not critical
-        });
+        .catch((err) => console.error("Error fetching recommendations:", err));
     }
   }, [product]);
 
@@ -267,12 +265,9 @@ const ProductDetail = () => {
 
   // Handle option selection
   const handleOptionSelect = (typeName, optionName) => {
-    console.log(`Selecting ${typeName}: ${optionName}`);
-    
     // Update selected options
     setSelectedOptions(prev => {
       const newOptions = { ...prev, [typeName]: optionName };
-      console.log('New selected options:', newOptions);
       return newOptions;
     });
   };
@@ -383,8 +378,6 @@ const ProductDetail = () => {
   useEffect(() => {
     if (!product?.hasVariations || !product.variationTypes?.length) return;
     
-    console.log('Initializing product variations - no defaults selected');
-    
     // Reset selected options to empty state
     setSelectedOptions({});
     setSelectedVariation(null);
@@ -460,7 +453,6 @@ const ProductDetail = () => {
         setInCart(true);
       }
     } catch (err) {
-      console.error('Cart operation failed:', err);
       toast.error(err.message || 'Failed to update cart. Please try again.');
     } finally {
       setProcessing(false);

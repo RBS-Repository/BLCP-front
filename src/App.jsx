@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import ScrollToTop from './components/ScrollToTop';
@@ -65,6 +65,8 @@ import Wishlist from './pages/Wishlist';
 import { WishlistProvider } from './context/WishlistContext';
 import ContactManager from './pages/admin/ContactManager';
 import ProductSpotlightManager from './pages/admin/ProductSpotlightManager';
+import RouteChangeTracker from './components/common/RouteChangeTracker';
+import usePageTransition from './hooks/usePageTransition';
 
 // Redirect authenticated users away from auth pages
 const AuthRoute = ({ children }) => {
@@ -84,34 +86,13 @@ const AdminRoute = ({ children }) => {
 };
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
+  const { isInitialLoading, isPageLoading, startPageLoading, endPageLoading } = usePageTransition();
 
-  useEffect(() => {
-    // Add event listener for when the window loads
-    const handleLoad = () => {
-      // Set a small timeout to ensure smooth animation
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1500); // Increased to 1.5 seconds to make the loader more visible
-    };
-
-    // Check if page is already loaded
-    if (document.readyState === 'complete') {
-      handleLoad();
-    } else {
-      window.addEventListener('load', handleLoad);
-    }
-
-    // Set a maximum loading time (in case load event never fires)
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 4000); // 4 seconds maximum loading time (increased for better experience)
-
-    return () => {
-      window.removeEventListener('load', handleLoad);
-      clearTimeout(timer);
-    };
-  }, []);
+  // Handle route changes
+  const handleRouteChange = () => {
+    startPageLoading();
+    setTimeout(endPageLoading, 500); // End loading after a short delay
+  };
 
   return (
     <HelmetProvider>
@@ -119,13 +100,17 @@ function App() {
         <CartProvider>
           <WishlistProvider>
             <ParallaxProvider>
-              {/* SiteLoader handles its own AnimatePresence */}
-              <SiteLoader isLoading={isLoading} />
+              <SiteLoader isLoading={isInitialLoading} />
               <Router>
-                <div className={`flex flex-col min-h-screen ${isLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-500'}`}>
+                <RouteChangeTracker onRouteChange={handleRouteChange} />
+                <div className={`flex flex-col min-h-screen ${isInitialLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-500'}`}>
                   <ScrollToTop />
                   <Header />
                   <main className="flex-grow">
+                    {/* Page transition loading indicator */}
+                    {isPageLoading && (
+                      <div className="fixed top-0 left-0 w-full h-1 bg-[#363a94] origin-left animate-loading-bar z-50"></div>
+                    )}
                     <Routes>
                       {/* Public routes */}
                       <Route path="/" element={<Home />} />

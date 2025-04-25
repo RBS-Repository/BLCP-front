@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * Full page loading screen shown on initial site visit
+ */
 const SiteLoader = ({ isLoading }) => {
   // Add internal state to properly manage exit animations
   const [shouldRender, setShouldRender] = useState(isLoading);
