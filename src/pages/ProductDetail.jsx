@@ -11,6 +11,7 @@ import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import axios from 'axios';
 import { Helmet } from 'react-helmet-async';
+import ProductDetailSkeleton from '../components/common/ProductDetailSkeleton';
 
 // Generate structured data for product
 const generateProductSchema = (product) => {
@@ -578,16 +579,13 @@ const ProductDetail = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center mt-24" >
+      <>
         <Helmet>
           <title>Loading Product... | Beauty Lab Cosmetic Products</title>
           <meta name="robots" content="noindex" />
         </Helmet>
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gray-200 border-t-[#363a94] rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Loading product details...</p>
-        </div>
-      </div>
+        <ProductDetailSkeleton />
+      </>
     );
   }
 
