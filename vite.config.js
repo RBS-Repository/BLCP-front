@@ -81,9 +81,10 @@ export default defineConfig(({ mode }) => {
         output: {
           // Improved chunking strategy to reduce main thread work
           manualChunks: (id) => {
-            // Core framework chunks
+            // Core framework chunks - MODIFIED to include scheduler
             if (id.includes('node_modules/react') || 
-                id.includes('node_modules/react-dom')) {
+                id.includes('node_modules/react-dom') ||
+                id.includes('node_modules/scheduler')) {
               return 'vendor-react';
             }
             
