@@ -43,7 +43,7 @@ export const monitorLCP = () => {
     return;
   }
   
-  // Development-only detailed monitoring
+  // Development-only data collection without explicit logging
   try {
     // Create a performance observer to monitor LCP
     const lcpObserver = new PerformanceObserver((entryList) => {
@@ -54,30 +54,6 @@ export const monitorLCP = () => {
       if (lcpEntry) {
         const lcpElement = lcpEntry.element;
         const lcpTime = lcpEntry.startTime / 1000; // Convert to seconds
-        
-        // Log LCP info in development
-        console.log('LCP Element:', lcpElement);
-        console.log('LCP Time:', lcpTime.toFixed(2) + 's');
-        
-        // Provide optimization suggestion if LCP is slow
-        if (lcpTime > 2.5) {
-          console.warn('⚠️ LCP is slow (> 2.5s). Consider optimizing this element.');
-          if (lcpElement) {
-            console.warn('Element type:', lcpElement.tagName);
-            
-            // Provide specific advice based on element type
-            if (lcpElement.tagName === 'IMG') {
-              console.warn('Optimization tips for images:');
-              console.warn('1. Add width and height attributes');
-              console.warn('2. Use preload: <link rel="preload" as="image" href="..." />');
-              console.warn('3. Consider using a LQIP (Low Quality Image Placeholder)');
-            } else if (lcpElement.tagName === 'H1' || lcpElement.tagName === 'P') {
-              console.warn('Optimization tips for text elements:');
-              console.warn('1. Ensure fonts are preloaded or use system fonts');
-              console.warn('2. Reduce blocking CSS and JavaScript');
-            }
-          }
-        }
         
         // Store LCP info for potential reporting to analytics
         window.lcpElementInfo = {
@@ -97,7 +73,7 @@ export const monitorLCP = () => {
       lcpObserver.disconnect();
     }, 10000);
   } catch (error) {
-    console.error('Error monitoring LCP:', error);
+    // Silent fail in development too
   }
 };
 

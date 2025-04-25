@@ -97,7 +97,6 @@ const Cart = () => {
         }
       });
     } catch (error) {
-      console.error('Error applying reward:', error);
       toast.error('Failed to apply reward');
     } finally {
       setLoading(false);
@@ -129,18 +128,6 @@ const Cart = () => {
         // Handle both response formats: array or object with products property
         const products = Array.isArray(data) ? data : (data?.products || []);
         
-        // Debug logging for cart items and their variation data
-        console.log('Cart items loaded:', products);
-        products.forEach((item, index) => {
-          console.log(`Item ${index + 1}: ${item.product?.name || 'Unknown product'}`);
-          console.log(`  - Price: ${item.price}, Product base price: ${item.product?.price}`);
-          if (item.variationDisplay) {
-            console.log(`  - Variation Display: ${item.variationDisplay}`);
-            console.log(`  - Variation SKU: ${item.variationSku || 'Partial selection'}`);
-            console.log(`  - Variation Options:`, item.variationOptions || 'None');
-          }
-        });
-        
         setCartItems(products);
         updateCart(products);
       } catch (err) {
@@ -162,7 +149,6 @@ const Cart = () => {
       });
       return response.data;
     } catch (error) {
-      console.error('Stock check failed:', error);
       throw error;
     }
   }, []);
@@ -193,7 +179,7 @@ const Cart = () => {
           )
         })));
       } catch (error) {
-        console.error('Stock check failed:', error);
+        // Error silently - will retry on next check
       }
     };
     
@@ -217,7 +203,7 @@ const Cart = () => {
           setShippingSettings(response.data);
         }
       } catch (error) {
-        console.error('Failed to fetch shipping settings:', error);
+        // Error silently - will use default values
       }
     };
     
@@ -691,7 +677,6 @@ const Cart = () => {
       
       toast.success(`Reward of ₱${bestReward ? bestReward.amount.toLocaleString() : '0'} applied! It will be finalized at checkout.`);
     } catch (error) {
-      console.error('Error applying reward:', error);
       toast.error(error.response?.data?.message || 'Failed to apply reward');
     } finally {
       setLoading(false);

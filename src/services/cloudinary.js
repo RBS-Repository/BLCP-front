@@ -8,13 +8,6 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const API_URL = import.meta.env.VITE_CLOUDINARY_API_URL;
 
-// For debugging - log configuration on initialization
-console.log('Cloudinary environment variables available:', { 
-  cloudName: !!CLOUD_NAME, 
-  uploadPreset: !!UPLOAD_PRESET,
-  apiUrl: !!API_URL 
-});
-
 /**
  * Uploads a file to Cloudinary
  * @param {File} file - The file to upload
@@ -29,7 +22,6 @@ export const uploadToCloudinary = async (file, options = {}) => {
 
     // Validate configuration
     if (!CLOUD_NAME || !UPLOAD_PRESET || !API_URL) {
-      console.error('Cloudinary configuration missing. Make sure environment variables are set correctly.');
       throw new Error('Cloudinary is not properly configured. Please contact support.');
     }
 
@@ -62,7 +54,7 @@ export const uploadToCloudinary = async (file, options = {}) => {
     
     return await response.json();
   } catch (error) {
-    console.error('Cloudinary upload error:', error);
+    // Re-throw the error without logging it
     throw error;
   }
 };
