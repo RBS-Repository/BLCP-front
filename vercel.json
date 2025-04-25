@@ -8,18 +8,14 @@
     "VITE_API_BASE_URL": "https://blcpbybmmc.onrender.com/api",
     "NODE_ENV": "production"
   },
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "https://blcpbybmmc.onrender.com/api/$1"
+  "rewrites": [
+    { 
+      "source": "/api/:path*", 
+      "destination": "https://blcpbybmmc.onrender.com/api/:path*" 
     },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html",
-      "status": 200
+    { 
+      "source": "/(.*)", 
+      "destination": "/index.html" 
     }
   ],
   "git": {
