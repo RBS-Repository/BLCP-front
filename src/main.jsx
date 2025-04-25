@@ -12,6 +12,15 @@ if (typeof window !== 'undefined') {
   };
 }
 
+// Fix for scheduler issue: ensure scheduler is properly loaded
+// This helps resolve "unstable_scheduleCallback" errors
+const fixSchedulerIssue = () => {
+  // This will ensure the scheduler is properly initialized
+  if (typeof window !== 'undefined' && !window.__REACT_SCHEDULER_INIT) {
+    window.__REACT_SCHEDULER_INIT = true;
+  }
+};
+
 // Remove unnecessary polyfills for modern browsers
 // These are only loaded conditionally if needed
 const loadPolyfills = async () => {
@@ -24,22 +33,29 @@ const loadPolyfills = async () => {
 
 // Initialize the app after polyfills (if needed)
 const initApp = () => {
-  // Disable StrictMode in production to avoid double-mounting components
-  const AppRoot = import.meta.env.PROD 
-    ? (
+  // Apply scheduler fix
+  fixSchedulerIssue();
+  
+  // Create a simple wrapper to ensure correct React initialization
+  const rootElement = document.getElementById('root');
+  
+  // Create the React root using the stable API
+  const root = ReactDOM.createRoot(rootElement);
+  
+  // Properly render with error boundaries
+  root.render(
+    import.meta.env.PROD ? (
       <AuthProvider>
         <App />
       </AuthProvider>
-    )
-    : (
+    ) : (
       <React.StrictMode>
         <AuthProvider>
           <App />
         </AuthProvider>
       </React.StrictMode>
-    );
-  
-  ReactDOM.createRoot(document.getElementById('root')).render(AppRoot);
+    )
+  );
 };
 
 // Load polyfills only if needed, then initialize

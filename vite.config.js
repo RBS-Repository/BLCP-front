@@ -195,7 +195,8 @@ export default defineConfig(({ mode }) => {
         'react-dom', 
         'react-router-dom',
         'framer-motion',
-        'lodash'
+        'lodash',
+        'scheduler'
       ],
       esbuildOptions: {
         target: 'es2020', // Modern JS syntax for better tree-shaking

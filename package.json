@@ -79,7 +79,8 @@
     "sweetalert2": "^11.17.2",
     "swiper": "^11.2.5",
     "uuid": "^11.1.0",
-    "whatwg-fetch": "^3.6.20"
+    "whatwg-fetch": "^3.6.20",
+    "scheduler": "^0.23.0"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^5.0.0",
