@@ -148,7 +148,10 @@ export default defineConfig(({ mode }) => {
             'console.debug', 
             'console.info', 
             'console.warn',
-            'console.error'
+            'console.error',
+            'console.trace',
+            'console.time',
+            'console.timeEnd'
           ] : [], // Remove all console calls in production
           passes: 3, // Additional compression passes for better minification
         },

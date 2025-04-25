@@ -82,41 +82,140 @@ export const CartProvider = ({ children }) => {
     setCartItems([]);
   }, []);
 
-  // Add default value for cartItems
-  const defaultValue = {
+  // Add to cart with variation support
+  const addToCart = useCallback(async (item) => {
+    try {
+      // Validate that productId exists
+      if (!item.productId) {
+        console.error('Error: Attempting to add item to cart with undefined productId', item);
+        throw new Error('Cannot add item to cart: Missing product ID');
+      }
+      
+      // Debug logging
+      console.log('Adding item to cart:', {
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        variationDisplay: item.variationDisplay || 'No variation',
+        variationSku: item.variationSku || 'No SKU (partial selection)',
+        variationOptions: item.variationOptions || 'No options'
+      });
+      
+      const payload = {
+        product: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      };
+
+      // Add variation data if present
+      if (item.variationSku) {
+        payload.variationSku = item.variationSku;
+      }
+
+      if (item.variationOptions) {
+        payload.variationOptions = item.variationOptions;
+      }
+      
+      if (item.variationDisplay) {
+        payload.variationDisplay = item.variationDisplay;
+      }
+
+      const response = await api.post('/cart', payload);
+      setCartItems(response.data.products);
+      return response.data;
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      throw err;
+    }
+  }, []);
+
+  // Remove from cart with variation support
+  const removeFromCart = useCallback(async (productId, variationSku = null) => {
+    try {
+      let url = `/cart/${productId}`;
+      
+      // If a variation SKU is provided, append it to the URL
+      if (variationSku) {
+        url += `?variationSku=${variationSku}`;
+      }
+      
+      const response = await api.delete(url);
+      setCartItems(response.data.products);
+      return response.data;
+    } catch (err) {
+      console.error('Error removing from cart:', err);
+      throw err;
+    }
+  }, []);
+
+  // Update cart item quantity with variation support
+  const updateCartItemQuantity = useCallback(async (productId, quantity, variationSku = null) => {
+    try {
+      const payload = {
+        quantity
+      };
+      
+      // If a variation SKU is provided, include it in the payload
+      if (variationSku) {
+        payload.variationSku = variationSku;
+      }
+      
+      const response = await api.patch(`/cart/${productId}`, payload);
+      setCartItems(response.data.products);
+      return response.data;
+    } catch (err) {
+      console.error('Error updating cart item quantity:', err);
+      throw err;
+    }
+  }, []);
+
+  // Get cart item - now supports checking by product ID and variation SKU
+  const getCartItem = useCallback((productId, variationSku = null) => {
+    if (variationSku) {
+      return cartItems.find(item => 
+        item.product === productId && 
+        item.variationSku === variationSku
+      );
+    }
+    return cartItems.find(item => item.product === productId);
+  }, [cartItems]);
+
+  // Check if item is in cart - now supports checking by product ID and variation SKU
+  const isInCart = useCallback((productId, variationSku = null) => {
+    return !!getCartItem(productId, variationSku);
+  }, [getCartItem]);
+
+  // Get the total price of items in the cart
+  const getTotalPrice = useCallback(() => {
+    return cartItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+  }, [cartItems]);
+
+  // Get the total number of items in the cart
+  const getTotalItems = useCallback(() => {
+    return cartItems.reduce((total, item) => {
+      return total + item.quantity;
+    }, 0);
+  }, [cartItems]);
+
+  const contextValue = {
     cartItems,
-    setCartItems,
-    addToCart: async (product, quantity) => {
-      try {
-        const response = await api.post('/cart', {
-          product: product._id,
-          name: product.name,
-          price: product.price,
-          quantity: quantity
-        });
-        
-        setCartItems(response.data.products);
-        return response.data;
-      } catch (err) {
-        throw err;
-      }
-    },
-    removeFromCart: async (productId) => {
-      try {
-        const response = await api.delete(`/cart/${productId}`);
-        
-        setCartItems(response.data.products);
-        return response.data;
-      } catch (err) {
-        throw err;
-      }
-    },
+    loading,
+    addToCart,
+    removeFromCart,
+    updateCartItemQuantity,
     updateCart,
-    clearCart
+    clearCart,
+    getCartItem,
+    isInCart,
+    getTotalPrice,
+    getTotalItems
   };
 
   return (
-    <CartContext.Provider value={defaultValue}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

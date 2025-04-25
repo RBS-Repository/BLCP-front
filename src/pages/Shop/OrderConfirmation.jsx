@@ -37,18 +37,14 @@ const OrderConfirmation = () => {
       
       if (pendingRewardData) {
         const pendingReward = JSON.parse(pendingRewardData);
-        console.log('Finalizing reward redemption for order:', orderId);
-        console.log('Pending reward details:', pendingReward);
         
         // Get order ID from URL parameters for additional context
         const orderIdFromUrl = window.location.pathname.split('/').pop();
-        console.log('Order ID from URL:', orderIdFromUrl);
         
         const token = await user.getIdToken();
         
         // Actually redeem the reward now that payment is confirmed
         try {
-          console.log('Calling API to finalize reward redemption with amount:', pendingReward.amount);
           const response = await api.post(
             '/rewards/redeem', 
             { 
@@ -64,7 +60,6 @@ const OrderConfirmation = () => {
           );
           
           if (response.data.success) {
-            console.log('Reward redemption SUCCESS response:', response.data);
             toast.success(`Reward of ₱${pendingReward.amount.toLocaleString()} successfully applied to your order!`);
             
             // Clear the pending reward from localStorage
@@ -79,16 +74,11 @@ const OrderConfirmation = () => {
               successMessage.parentNode.insertBefore(rewardText, successMessage.nextSibling);
             }
           } else {
-            console.error('Failed to finalize reward redemption:', response.data);
             toast.error('There was an issue applying your reward. Please contact support.');
           }
         } catch (apiError) {
-          console.error('API error finalizing reward redemption:', apiError);
-          console.error('Full API error details:', apiError.response?.data);
-          
           // Check for specific error cases
           if (apiError.response?.data?.error === 'Insufficient rewards balance') {
-            console.log('Insufficient rewards balance. Available:', apiError.response.data.available, 'Requested:', apiError.response.data.requested);
             toast.error(`Unable to apply full reward amount. Available: ₱${apiError.response.data.available}, Requested: ₱${apiError.response.data.requested}`);
           } else {
             toast.error('Error applying reward. Our team has been notified.');
@@ -97,11 +87,8 @@ const OrderConfirmation = () => {
           // Still remove the pending reward from localStorage to avoid confusion
           localStorage.removeItem('pendingReward');
         }
-      } else {
-        console.log('No pending reward found in localStorage for order:', orderId);
       }
     } catch (error) {
-      console.error('Error in finalizeRewardRedemption:', error);
       toast.error('Failed to apply your reward. Our team has been notified.');
       
       // Still clean up localStorage
@@ -119,8 +106,6 @@ const OrderConfirmation = () => {
       
       if (pendingRewardData) {
         const pendingReward = JSON.parse(pendingRewardData);
-        console.log('Found pending reward to restore for cancelled order:', orderId);
-        console.log('Reward details:', pendingReward);
         
         // If the pending reward belongs to this user, we just need to remove it from localStorage
         // It was never actually redeemed on the backend, so it's still available
@@ -131,16 +116,10 @@ const OrderConfirmation = () => {
           // Clear any checkout data as well
           localStorage.removeItem('checkoutData');
           
-          console.log('Reward restored successfully - removed from pending state');
           toast.success('Your reward has been restored and is available for your next purchase.');
-        } else {
-          console.warn('Pending reward belongs to a different user:', pendingReward.userId);
         }
-      } else {
-        console.log('No pending rewards found to restore for order:', orderId);
       }
     } catch (error) {
-      console.error('Error restoring pending rewards:', error);
       toast.error('There was an issue restoring your reward. Please contact support.');
     }
   };
