@@ -6,6 +6,15 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { uploadImage, uploadMultipleImages, isCloudinaryUrl } from '../../services/cloudinary';
 
+/**
+ * IMPORTANT NOTE FOR IMAGE UPLOADS:
+ * For optimal performance and user experience, please use:
+ * - WebP format images whenever possible (better compression, smaller file size)
+ * - Images under 2MB in size
+ * - Compress images before uploading to improve page load times
+ * - Consider dimensions appropriate for display context to avoid unnecessary file size
+ */
+
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
