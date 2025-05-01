@@ -66,12 +66,33 @@ const AdminProducts = () => {
   const getCategoryNameById = (categoryId) => {
     if (!categoryId) return 'Uncategorized';
     
-    const category = categories.find(cat => 
-      cat._id === categoryId || 
-      cat._id?.toString() === categoryId?.toString()
+    // Check if the product has a categoryName property first - use that if available
+    const product = products.find(p => 
+      p.category === categoryId || 
+      p.category?._id === categoryId || 
+      p.category?.toString() === categoryId?.toString()
     );
     
-    if (!category) return 'Unknown';
+    if (product?.categoryName) {
+      return product.categoryName;
+    }
+    
+    // Ensure categoryId is a string for comparison
+    const categoryIdString = typeof categoryId === 'object' ? 
+      categoryId._id?.toString() : 
+      categoryId?.toString();
+    
+    // Try to find in categories array
+    const category = categories.find(cat => 
+      cat._id === categoryIdString || 
+      cat._id?.toString() === categoryIdString
+    );
+    
+    if (!category) {
+      console.log(`Category not found for ID: ${categoryIdString}`);
+      // If we can't find the category, return a reasonable display value
+      return categoryId?.toString() || 'Uncategorized';
+    }
     
     // If it's a subcategory, show parent > child format
     if (category.parentCategory) {
@@ -240,7 +261,53 @@ const AdminProducts = () => {
     checkAdminStatus();
   }, [user]);
 
-  // Fetch products effect
+  // Load categories when component mounts - update this to fix the "Unknown" category issue
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching categories for product list...');
+        
+        const token = await user.getIdToken();
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        
+        const data = await response.json();
+        
+        // Normalize categories to ensure consistent ID format
+        const normalizedCategories = data.map(category => ({
+          ...category,
+          // Ensure _id is always a string for consistent comparison
+          _id: category._id ? category._id.toString() : null,
+          // Normalize parentCategory - convert from object if needed
+          parentCategory: category.parentCategory 
+            ? (typeof category.parentCategory === 'object' && category.parentCategory._id 
+                ? category.parentCategory._id.toString() 
+                : category.parentCategory.toString())
+            : null
+        }));
+        
+        console.log(`Loaded ${normalizedCategories.length} categories for product list`);
+        setCategories(normalizedCategories);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast.error('Failed to load categories');
+      }
+    };
+    
+    fetchCategories();
+  }, [isAdmin, user]);
+
+  // Modify the products fetch to wait for categories to load and attach category names
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -260,44 +327,51 @@ const AdminProducts = () => {
         }
         
         const data = await response.json();
-        setProducts(data);
-        const uniqueCategories = [...new Set(data.map(p => p.category))];
-        setCategories(uniqueCategories);
+        
+        // If we have categories data, enhance products with category names
+        if (categories && categories.length > 0) {
+          const enhancedProducts = data.map(product => {
+            // If the product already has a categoryName, use it
+            if (product.categoryName) {
+              return product;
+            }
+            
+            // Otherwise try to find the name from categories
+            if (product.category) {
+              const categoryId = typeof product.category === 'object' ? 
+                product.category._id?.toString() : 
+                product.category.toString();
+              
+              const category = categories.find(cat => 
+                cat._id === categoryId || cat._id?.toString() === categoryId
+              );
+              
+              if (category) {
+                return {
+                  ...product,
+                  categoryName: category.name
+                };
+              }
+            }
+            
+            return product;
+          });
+          
+          setProducts(enhancedProducts);
+        } else {
+          // If no categories yet, just set the products
+          setProducts(data);
+        }
+        setLoading(false);
       } catch (err) {
         console.error('Fetch error:', err);
         setError(err.message);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [isAdmin, user]);
-
-  // Load categories when component mounts
-  useEffect(() => {
-    if (!isAdmin) return;
-    
-    const fetchCategories = async () => {
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setCategories(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-    
-    fetchCategories();
-  }, [isAdmin, user]);
+  }, [isAdmin, user, categories.length > 0]); // Re-run when categories are loaded
 
   // Load shipping settings when component mounts
   useEffect(() => {
@@ -763,13 +837,27 @@ const AdminProducts = () => {
     }
   };
 
-  // Fix the handleCategoryChange function to use the correct API endpoint (same as used in CreateProduct.jsx)
+  // Fix the handleCategoryChange function to preserve all product data when updating category
   const handleCategoryChange = async (productId, newCategoryId) => {
     try {
       // Show loading toast
       const loadingToast = toast.loading('Updating category...');
       
       const token = await user.getIdToken();
+      
+      // First, fetch the complete product data to avoid losing information
+      const getProductResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/${productId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!getProductResponse.ok) {
+        const errorText = await getProductResponse.text();
+        throw new Error(`Failed to fetch product data: ${errorText}`);
+      }
+      
+      const productData = await getProductResponse.json();
       
       // Find the category name from the categories list
       let categoryName = '';
@@ -781,7 +869,7 @@ const AdminProducts = () => {
         categoryName = category?.name || '';
       }
       
-      // Update product directly using the same endpoint used in other parts of the app
+      // Update only the category fields while preserving all other product data
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/${productId}`, {
         method: 'PUT',
         headers: {
@@ -789,6 +877,9 @@ const AdminProducts = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          // Preserve all existing product data
+          ...productData,
+          // Update only the category fields
           category: newCategoryId,
           categoryName: categoryName
         })
@@ -799,10 +890,13 @@ const AdminProducts = () => {
         throw new Error(`Failed to update category: ${errorData}`);
       }
       
-      // Update the product in local state
+      // Get the updated product data from the response
+      const updatedProduct = await response.json();
+      
+      // Update the product in local state with the complete updated data
       setProducts(products.map(product => 
         product._id === productId 
-          ? { ...product, category: newCategoryId, categoryName: categoryName }
+          ? updatedProduct
           : product
       ));
       
