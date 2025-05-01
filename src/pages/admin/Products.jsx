@@ -64,7 +64,10 @@ const AdminProducts = () => {
 
   // Function to get category name by ID
   const getCategoryNameById = (categoryId) => {
-    if (!categoryId) return 'Uncategorized';
+    // Handle null, undefined, empty string, or other falsy values
+    if (!categoryId || categoryId === "" || categoryId === "undefined") {
+      return 'Uncategorized';
+    }
     
     // Ensure categoryId is a string for consistent comparison
     const categoryIdString = typeof categoryId === 'object' ? 
@@ -103,9 +106,8 @@ const AdminProducts = () => {
       return product.categoryName;
     }
     
-    // Fallback: If we can't find the category, return a reasonable display value
-    console.log(`Category not found for ID: ${categoryIdString}`);
-    return categoryId?.toString() || 'Uncategorized';
+    // Fallback: If we can't find the category, return Uncategorized
+    return 'Uncategorized';
   };
 
   // Function to toggle dropdown visibility
@@ -415,6 +417,16 @@ const AdminProducts = () => {
         // If we have categories data, enhance products with category names
         if (categories && categories.length > 0) {
           const enhancedProducts = data.map(product => {
+            // Handle uncategorized products
+            if (!product.category || product.category === "") {
+              return {
+                ...product,
+                category: "",
+                categoryName: "Uncategorized",
+                categoryDisplayName: "Uncategorized"
+              };
+            }
+            
             // If the product already has a categoryName, use it
             if (product.categoryName) {
               return product;
@@ -431,20 +443,45 @@ const AdminProducts = () => {
               );
               
               if (category) {
+                // Check if it's a subcategory and create display name with parent info
+                let categoryDisplayName = category.name;
+                
+                if (category.parentCategory) {
+                  const parentCategory = categories.find(cat => 
+                    cat._id === category.parentCategory || 
+                    cat._id?.toString() === category.parentCategory?.toString()
+                  );
+                  
+                  if (parentCategory) {
+                    categoryDisplayName = `${parentCategory.name} › ${category.name}`;
+                  }
+                }
+                
                 return {
                   ...product,
-                  categoryName: category.name
+                  categoryName: category.name,
+                  categoryDisplayName: categoryDisplayName
                 };
               }
             }
             
-            return product;
+            // If category not found, mark as uncategorized
+            return {
+              ...product,
+              categoryName: "Uncategorized",
+              categoryDisplayName: "Uncategorized"
+            };
           });
           
           setProducts(enhancedProducts);
         } else {
-          // If no categories yet, just set the products
-          setProducts(data);
+          // If no categories yet, mark all as uncategorized
+          const uncategorizedProducts = data.map(product => ({
+            ...product,
+            categoryName: "Uncategorized",
+            categoryDisplayName: "Uncategorized"
+          }));
+          setProducts(uncategorizedProducts);
         }
         setLoading(false);
       } catch (err) {
@@ -972,6 +1009,48 @@ const AdminProducts = () => {
       
       const productData = await getProductResponse.json();
       
+      // Handle setting product to uncategorized when empty category is selected
+      if (!newCategoryId || newCategoryId === "") {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/${productId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            // Preserve all existing product data
+            ...productData,
+            // Clear category fields to mark as uncategorized
+            category: "",
+            categoryName: "Uncategorized",
+            categoryDisplayName: "Uncategorized"
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`Failed to update category: ${errorData}`);
+        }
+        
+        // Get the updated product data from the response
+        const updatedProduct = await response.json();
+        
+        // Update the product in local state with the complete updated data
+        setProducts(products.map(product => 
+          product._id === productId 
+            ? updatedProduct
+            : product
+        ));
+        
+        // Dismiss loading toast and show success
+        toast.dismiss(loadingToast);
+        toast.success('Product set as Uncategorized');
+        
+        // Close dropdown
+        setActiveCategoryDropdown(null);
+        return;
+      }
+      
       // Find the category name from the categories list
       let categoryName = '';
       let categoryDisplayName = '';
@@ -1132,7 +1211,7 @@ const AdminProducts = () => {
                   {renderCategoryOptions(categories)}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </div>
@@ -1149,7 +1228,7 @@ const AdminProducts = () => {
                   <option value="inactive">Inactive</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </div>
@@ -1354,9 +1433,13 @@ const AdminProducts = () => {
                                   <div className="flex items-center">
                                     <span 
                                       className="truncate mr-2" 
-                                      title={product.categoryDisplayName || getCategoryNameById(product.category)}
+                                      title={product.categoryDisplayName || getCategoryNameById(product.category) || "Uncategorized"}
                                     >
-                                      {product.categoryDisplayName || getCategoryNameById(product.category)}
+                                      {!product.category || (product.category === "") ? (
+                                        <span className="italic text-gray-400">Uncategorized</span>
+                                      ) : (
+                                        product.categoryDisplayName || getCategoryNameById(product.category)
+                                      )}
                                     </span>
                                     <button 
                                       onClick={() => toggleCategoryDropdown(product._id)}
