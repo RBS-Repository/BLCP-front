@@ -345,15 +345,53 @@ const Products = () => {
   // Destructure the paginated data
   const { paginatedProducts, filteredTotal, totalPages } = getPaginatedProducts();
   
-  // Add function to enhance products with category info
+  // Enhance the getCategoryName function to handle all potential category formats
+  const getCategoryName = useCallback((categoryId) => {
+    if (!categoryId) return 'All Products';
+    if (categoryId === 'all') return 'All Products';
+    
+    // If categoryId is actually a category object, extract the ID or return the name directly
+    if (typeof categoryId === 'object') {
+      return categoryId.name || 'Unknown Category';
+    }
+    
+    const category = categories.find(cat => {
+      // Handle various ID formats
+      const catId = typeof cat.id === 'string' ? cat.id : String(cat.id);
+      const compareId = typeof categoryId === 'string' ? categoryId : String(categoryId);
+      return catId === compareId;
+    });
+    
+    return category?.name || 'Unknown Category';
+  }, [categories]);
+
+  // Near the filteredAndSortedProducts computation, enhance the category name handling
   const enhanceProductsWithCategoryNames = useCallback((products) => {
     if (!products || !Array.isArray(products) || !categories || !categories.length) {
       return products;
     }
     
     return products.map(product => {
-      // Don't modify if no category or already has proper category object
-      if (!product.category || (typeof product.category === 'object' && product.category.name)) {
+      // Don't modify if no category
+      if (!product.category) {
+        return {
+          ...product,
+          category: 'Uncategorized' // Provide a default string
+        };
+      }
+      
+      // Already has proper category object with name
+      if (typeof product.category === 'object' && product.category.name) {
+        // Ensure the object has a toString method to prevent rendering errors
+        if (!product.category.toString || product.category.toString === Object.prototype.toString) {
+          return {
+            ...product,
+            category: {
+              ...product.category,
+              toString: function() { return this.name; }
+            }
+          };
+        }
         return product;
       }
       
@@ -371,17 +409,23 @@ const Products = () => {
         // Create enhanced copy
         return {
           ...product,
-          // Preserve original category but add the name
+          // Preserve original category but add the name and toString method
           category: {
             _id: categoryId,
             name: matchingCategory.name,
             // Include parent info if available
-            ...(matchingCategory.parentCategory ? { parentCategory: matchingCategory.parentCategory } : {})
+            ...(matchingCategory.parentCategory ? { parentCategory: matchingCategory.parentCategory } : {}),
+            // Add toString method to prevent direct object rendering
+            toString: function() { return this.name; }
           }
         };
       }
       
-      return product;
+      // If no matching category found, use the ID as a string
+      return {
+        ...product,
+        category: categoryId
+      };
     });
   }, [categories]);
 
@@ -806,20 +850,6 @@ const Products = () => {
     setSortBy('featured');
     setCurrentPage(1);
   };
-
-  // Add helper function to get category name from ID
-  const getCategoryName = useCallback((categoryId) => {
-    if (!categoryId || categoryId === 'all') return 'All Products';
-    
-    const category = categories.find(cat => {
-      // Handle various ID formats
-      const catId = typeof cat.id === 'string' ? cat.id : String(cat.id);
-      const compareId = typeof categoryId === 'string' ? categoryId : String(categoryId);
-      return catId === compareId;
-    });
-    
-    return category?.name || 'Unknown Category';
-  }, [categories]);
 
   // Function to get active filters for the StickyFilterBar
   const getActiveFilters = () => {
@@ -1476,6 +1506,31 @@ const Products = () => {
                 <FaFilter size={14} />
                 <span className="text-sm font-medium">Filters</span>
                 </motion.button>
+              
+                      {/* Add View Mode button for mobile */}
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => {
+                          const newLayout = gridLayout === 'list' ? 'standard' : 'list';
+                          setGridLayout(newLayout);
+                          setStoredItem('viewMode', newLayout);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors shadow-sm border border-gray-200"
+                        aria-label={`Switch to ${gridLayout === 'list' ? 'grid' : 'list'} view`}
+                      >
+                        {gridLayout === 'list' ? (
+                          <>
+                            <FaThLarge size={14} />
+                            <span className="text-sm font-medium">Grid</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaList size={14} />
+                            <span className="text-sm font-medium">List</span>
+                          </>
+                        )}
+                      </motion.button>
               
                       {/* Sort Dropdown with improved styling */}
                       <div className="flex-1 relative filter-control sort-control">

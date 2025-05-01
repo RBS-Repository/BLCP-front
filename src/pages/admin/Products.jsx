@@ -265,7 +265,7 @@ const AdminProducts = () => {
   // Load categories when component mounts - update this to fix the "Unknown" category issue
   useEffect(() => {
     if (!isAdmin) return;
-    
+
     const fetchCategories = async () => {
       try {
         setLoading(true);
@@ -306,7 +306,7 @@ const AdminProducts = () => {
         setLoading(false);
       }
     };
-    
+
     fetchCategories();
   }, [isAdmin, user]);
 
@@ -316,18 +316,18 @@ const AdminProducts = () => {
     
     try {
       console.log('Refreshing categories after changes...');
-      const token = await user.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      
+        const token = await user.getIdToken();
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+        
       if (!response.ok) {
         throw new Error('Failed to fetch updated categories');
       }
       
-      const data = await response.json();
+          const data = await response.json();
       
       // Normalize categories to ensure consistent ID format
       const normalizedCategories = data.map(category => ({
@@ -386,7 +386,7 @@ const AdminProducts = () => {
       
       // Force re-render of category names
       toast.success('Categories refreshed successfully');
-    } catch (error) {
+      } catch (error) {
       console.error('Error refreshing categories:', error);
       // Don't show toast here to avoid annoying users on background refreshes
     }
@@ -1665,8 +1665,8 @@ const AdminProducts = () => {
       </Modal>
 
       {/* Category Manager Component */}
-      <CategoryManager
-        isOpen={showCategoryManager}
+      <CategoryManager 
+        isOpen={showCategoryManager} 
         onClose={() => {
           setShowCategoryManager(false);
           refreshCategories(); // Refresh categories when modal is closed

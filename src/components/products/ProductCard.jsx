@@ -23,6 +23,14 @@ const daysAgo = (dateString) => {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
+// Add a helper function to format category information
+const formatCategory = (category) => {
+  if (category && typeof category === 'object') {
+    return category.name || 'Uncategorized';
+  }
+  return category || 'Uncategorized';
+};
+
 const ProductCard = ({ 
   product, 
   onQuickView = () => {}, 
@@ -398,7 +406,7 @@ const ProductCard = ({
             {/* Category Tag */}
             <div className="absolute bottom-3 left-3">
               <span className={`inline-block bg-[#363a94] text-white ${isCompact ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} rounded-md`}>
-                {getDisplayCategory()}
+                {formatCategory(product.category)}
               </span>
             </div>
             
@@ -531,7 +539,7 @@ const ProductCard = ({
             {/* Category Badge - Now at top */}
             <div className="absolute top-3 left-3 z-10">
               <span className="inline-block bg-[#363a94] text-white text-xs px-2 py-1 rounded-md shadow-sm">
-                {getDisplayCategory()}
+                {formatCategory(product.category)}
               </span>
             </div>
           </div>
@@ -595,7 +603,7 @@ const ProductCard = ({
             <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-center text-sm text-gray-600">
                 <FaTags className="text-[#363a94] mr-2" />
-                <span>Category: <span className="font-medium">{getDisplayCategory()}</span></span>
+                <span>Category: <span className="font-medium">{formatCategory(product.category)}</span></span>
               </div>
               
               <div className="flex items-center text-sm text-gray-600">

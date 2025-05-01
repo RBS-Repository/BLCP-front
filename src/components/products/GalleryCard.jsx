@@ -25,6 +25,16 @@ const GalleryCard = ({
   // Check if product is on sale
   const isOnSale = product.discount && product.discount > 0;
   
+  // Add a formatting helper function at the top of the component function
+  const formatCategory = (category) => {
+    // Handle when category is an object
+    if (category && typeof category === 'object') {
+      return category.name || 'Uncategorized';
+    }
+    // Handle when category is a string or undefined
+    return category || 'Uncategorized';
+  };
+  
   // Handle adding to cart
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -148,7 +158,9 @@ const GalleryCard = ({
           {/* Product info at bottom */}
           <div className="text-white">
             <h3 className="font-semibold text-xl">{product.name}</h3>
-            <p className="mb-3 opacity-90">{product.category}</p>
+            <p className="text-xs text-gray-500 mb-1">
+              {formatCategory(product.category)}
+            </p>
             
             {/* Price and add to cart */}
             <div className="flex items-center justify-between">

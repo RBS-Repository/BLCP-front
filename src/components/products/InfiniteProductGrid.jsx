@@ -165,34 +165,63 @@ const InfiniteProductGrid = ({
     }
   };
   
+  // Add this helper function near the top of the component
+  const normalizeProduct = (product) => {
+    if (!product) return product;
+    
+    // Create a normalized copy of the product
+    const normalized = {...product};
+    
+    // Handle category normalization
+    if (normalized.category && typeof normalized.category === 'object') {
+      // Keep the object but ensure it has a toString method for accidental rendering
+      normalized.category = {
+        ...normalized.category,
+        toString: () => normalized.category.name || 'Uncategorized'
+      };
+    }
+    
+    return normalized;
+  };
+  
   // Render the appropriate card component based on layout
   const renderProductCard = (product, index) => {
+    const normalizedProduct = normalizeProduct(product);
+    
     const isLastElement = index === sortedProducts.length - 1;
     const ref = isLastElement ? lastProductElementRef : null;
     
     if (gridLayout === 'gallery') {
       return (
-        <GalleryCard
-          key={product._id}
-          product={product}
-          onQuickView={() => onQuickView(product)}
-          addToRecentlyViewed={() => addToRecentlyViewed(product)}
-          ref={ref}
-        />
+        <motion.div
+          key={normalizedProduct._id || index}
+          className="flex justify-center"
+        >
+          <GalleryCard
+            product={normalizedProduct}
+            onQuickView={() => onQuickView(normalizedProduct)}
+            addToRecentlyViewed={() => addToRecentlyViewed(normalizedProduct)}
+            ref={ref}
+          />
+        </motion.div>
       );
     }
     
     return (
-      <ProductCard
-        key={product._id}
-        product={product}
-        viewMode={gridLayout === 'list' ? 'list' : 'grid'} 
-        onQuickView={() => onQuickView(product)}
-        addToRecentlyViewed={() => addToRecentlyViewed(product)}
-        ref={ref}
-        delay={index * 0.05}
-        gridLayout={gridLayout}
-      />
+      <motion.div
+        key={normalizedProduct._id || index}
+        className="flex justify-center"
+      >
+        <ProductCard
+          product={normalizedProduct}
+          viewMode={gridLayout === 'list' ? 'list' : 'grid'} 
+          onQuickView={() => onQuickView(normalizedProduct)}
+          addToRecentlyViewed={() => addToRecentlyViewed(normalizedProduct)}
+          ref={ref}
+          delay={index * 0.05}
+          gridLayout={gridLayout}
+        />
+      </motion.div>
     );
   };
   
