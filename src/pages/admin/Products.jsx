@@ -66,7 +66,33 @@ const AdminProducts = () => {
   const getCategoryNameById = (categoryId) => {
     if (!categoryId) return 'Uncategorized';
     
-    // Check if the product has a categoryName property first - use that if available
+    // Ensure categoryId is a string for consistent comparison
+    const categoryIdString = typeof categoryId === 'object' ? 
+      categoryId._id?.toString() : 
+      categoryId?.toString();
+    
+    // First priority: Check in the categories array for the most up-to-date name
+    const category = categories.find(cat => 
+      cat._id === categoryIdString || 
+      cat._id?.toString() === categoryIdString
+    );
+    
+    if (category) {
+      // If it's a subcategory, show parent > child format
+      if (category.parentCategory) {
+        const parentCategory = categories.find(cat => 
+          cat._id === category.parentCategory || 
+          cat._id?.toString() === category.parentCategory?.toString()
+        );
+        
+        if (parentCategory) {
+          return `${parentCategory.name} › ${category.name}`;
+        }
+      }
+      return category.name;
+    }
+    
+    // Second priority: Check if the product has a categoryName property
     const product = products.find(p => 
       p.category === categoryId || 
       p.category?._id === categoryId || 
@@ -77,36 +103,9 @@ const AdminProducts = () => {
       return product.categoryName;
     }
     
-    // Ensure categoryId is a string for comparison
-    const categoryIdString = typeof categoryId === 'object' ? 
-      categoryId._id?.toString() : 
-      categoryId?.toString();
-    
-    // Try to find in categories array
-    const category = categories.find(cat => 
-      cat._id === categoryIdString || 
-      cat._id?.toString() === categoryIdString
-    );
-    
-    if (!category) {
-      console.log(`Category not found for ID: ${categoryIdString}`);
-      // If we can't find the category, return a reasonable display value
-      return categoryId?.toString() || 'Uncategorized';
-    }
-    
-    // If it's a subcategory, show parent > child format
-    if (category.parentCategory) {
-      const parentCategory = categories.find(cat => 
-        cat._id === category.parentCategory || 
-        cat._id?.toString() === category.parentCategory?.toString()
-      );
-      
-      if (parentCategory) {
-        return `${parentCategory.name} › ${category.name}`;
-      }
-    }
-    
-    return category.name;
+    // Fallback: If we can't find the category, return a reasonable display value
+    console.log(`Category not found for ID: ${categoryIdString}`);
+    return categoryId?.toString() || 'Uncategorized';
   };
 
   // Function to toggle dropdown visibility
@@ -301,20 +300,105 @@ const AdminProducts = () => {
       } catch (error) {
         console.error('Error fetching categories:', error);
         toast.error('Failed to load categories');
+      } finally {
+        setLoading(false);
       }
     };
     
     fetchCategories();
   }, [isAdmin, user]);
 
-  // Modify the products fetch to wait for categories to load and attach category names
+  // Add this function to refresh categories after category modifications
+  const refreshCategories = async () => {
+    if (!isAdmin || !user) return;
+    
+    try {
+      console.log('Refreshing categories after changes...');
+      const token = await user.getIdToken();
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch updated categories');
+      }
+      
+      const data = await response.json();
+      
+      // Normalize categories to ensure consistent ID format
+      const normalizedCategories = data.map(category => ({
+        ...category,
+        _id: category._id ? category._id.toString() : null,
+        parentCategory: category.parentCategory 
+          ? (typeof category.parentCategory === 'object' && category.parentCategory._id 
+              ? category.parentCategory._id.toString() 
+              : category.parentCategory.toString())
+          : null
+      }));
+      
+      console.log(`Refreshed ${normalizedCategories.length} categories`);
+      
+      // Update categories state
+      setCategories(normalizedCategories);
+      
+      // Create a map for faster category lookups
+      const categoryMap = {};
+      normalizedCategories.forEach(cat => {
+        categoryMap[cat._id] = cat;
+      });
+      
+      // Update products with new category names
+      setProducts(prevProducts => {
+        return prevProducts.map(product => {
+          if (!product.category) return product;
+          
+          // Get category ID in string format
+          const categoryId = typeof product.category === 'object' && product.category._id
+            ? product.category._id.toString()
+            : product.category.toString();
+          
+          // Find the updated category
+          const updatedCategory = categoryMap[categoryId];
+          
+          if (updatedCategory) {
+            // Get parent category info if needed
+            let categoryDisplayName = updatedCategory.name;
+            if (updatedCategory.parentCategory && categoryMap[updatedCategory.parentCategory]) {
+              const parentName = categoryMap[updatedCategory.parentCategory].name;
+              categoryDisplayName = `${parentName} › ${updatedCategory.name}`;
+            }
+            
+            // Update the product with the current category name
+            return {
+              ...product,
+              categoryName: updatedCategory.name,
+              categoryDisplayName // Store for display purposes
+            };
+          }
+          
+          return product;
+        });
+      });
+      
+      // Force re-render of category names
+      toast.success('Categories refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing categories:', error);
+      // Don't show toast here to avoid annoying users on background refreshes
+    }
+  };
+
+  // Modify the products fetch to also include out-of-stock products
   useEffect(() => {
     if (!isAdmin) return;
 
     const fetchProducts = async () => {
       try {
         const token = await user.getIdToken();
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/admin`, {
+        // Add showAll=true to fetch all products including those out of stock
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/admin?showAll=true`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -371,7 +455,7 @@ const AdminProducts = () => {
     };
 
     fetchProducts();
-  }, [isAdmin, user, categories.length > 0]); // Re-run when categories are loaded
+  }, [isAdmin, user, categories.length]); // Re-run when categories are loaded or changed
 
   // Load shipping settings when component mounts
   useEffect(() => {
@@ -780,24 +864,52 @@ const AdminProducts = () => {
       
       // Find the category name from the categories list if we have it
       let categoryName = '';
+      let categoryDisplayName = '';
+      
       if (product.categoryName) {
         // Use existing categoryName if available
         categoryName = product.categoryName;
+        categoryDisplayName = product.categoryDisplayName || getCategoryNameById(product.category);
       } else if (product.category) {
         // Look up the category name from our categories list
+        const categoryId = typeof product.category === 'object' ? 
+          product.category._id?.toString() : product.category.toString();
+        
         const category = categories.find(cat => 
-          cat._id === product.category || 
-          cat._id?.toString() === product.category?.toString()
+          cat._id === categoryId || cat._id?.toString() === categoryId
         );
-        categoryName = category?.name || 'Uncategorized';
+        
+        if (category) {
+          categoryName = category.name;
+          
+          // Create proper display name for subcategories
+          if (category.parentCategory) {
+            const parentCategory = categories.find(cat => 
+              cat._id === category.parentCategory || 
+              cat._id?.toString() === category.parentCategory?.toString()
+            );
+            
+            if (parentCategory) {
+              categoryDisplayName = `${parentCategory.name} › ${category.name}`;
+            } else {
+              categoryDisplayName = category.name;
+            }
+          } else {
+            categoryDisplayName = category.name;
+          }
+        } else {
+          categoryName = 'Uncategorized';
+          categoryDisplayName = 'Uncategorized';
+        }
       }
       
       // Clone the product object and make necessary modifications
       const duplicatedProduct = {
         ...product,
         name: `${product.name} (Copy)`,
-        // Ensure categoryName is set
+        // Ensure category information is properly set
         categoryName: categoryName,
+        categoryDisplayName: categoryDisplayName,
         // Remove _id so a new one will be generated
         _id: undefined,
         createdAt: undefined,
@@ -846,7 +958,8 @@ const AdminProducts = () => {
       const token = await user.getIdToken();
       
       // First, fetch the complete product data to avoid losing information
-      const getProductResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/${productId}`, {
+      // Add the showAll=true parameter to fetch all products including those out of stock
+      const getProductResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/${productId}?showAll=true`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -861,12 +974,32 @@ const AdminProducts = () => {
       
       // Find the category name from the categories list
       let categoryName = '';
+      let categoryDisplayName = '';
       if (newCategoryId) {
         const category = categories.find(cat => 
           cat._id === newCategoryId || 
           cat._id?.toString() === newCategoryId?.toString()
         );
-        categoryName = category?.name || '';
+        
+        if (category) {
+          categoryName = category.name;
+          
+          // Check if it's a subcategory to create a display name with parent
+          if (category.parentCategory) {
+            const parentCategory = categories.find(cat => 
+              cat._id === category.parentCategory || 
+              cat._id?.toString() === category.parentCategory?.toString()
+            );
+            
+            if (parentCategory) {
+              categoryDisplayName = `${parentCategory.name} › ${category.name}`;
+            } else {
+              categoryDisplayName = category.name;
+            }
+          } else {
+            categoryDisplayName = category.name;
+          }
+        }
       }
       
       // Update only the category fields while preserving all other product data
@@ -881,7 +1014,8 @@ const AdminProducts = () => {
           ...productData,
           // Update only the category fields
           category: newCategoryId,
-          categoryName: categoryName
+          categoryName: categoryName,
+          categoryDisplayName: categoryDisplayName
         })
       });
       
@@ -1218,8 +1352,11 @@ const AdminProducts = () => {
                                 </div>
                                 <div className="relative flex flex-col text-xs text-gray-500 category-dropdown-container">
                                   <div className="flex items-center">
-                                    <span className="truncate mr-2" title={getCategoryNameById(product.category)}>
-                                      {getCategoryNameById(product.category)}
+                                    <span 
+                                      className="truncate mr-2" 
+                                      title={product.categoryDisplayName || getCategoryNameById(product.category)}
+                                    >
+                                      {product.categoryDisplayName || getCategoryNameById(product.category)}
                                     </span>
                                     <button 
                                       onClick={() => toggleCategoryDropdown(product._id)}
@@ -1445,9 +1582,12 @@ const AdminProducts = () => {
       </Modal>
 
       {/* Category Manager Component */}
-      <CategoryManager 
-        isOpen={showCategoryManager} 
-        onClose={() => setShowCategoryManager(false)} 
+      <CategoryManager
+        isOpen={showCategoryManager}
+        onClose={() => {
+          setShowCategoryManager(false);
+          refreshCategories(); // Refresh categories when modal is closed
+        }}
         user={user}
       />
 
