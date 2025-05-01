@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import Modal from '../../components/ui/Modal';
 import { toast } from 'react-hot-toast';
+import CategoryManager from '../../components/admin/CategoryManager';
 import { 
   FaBox, 
   FaPlus, 
@@ -15,7 +16,8 @@ import {
   FaSortUp, 
   FaSortDown, 
   FaEdit, 
-  FaTrash 
+  FaTrash,
+  FaCopy 
 } from 'react-icons/fa';
 
 const AdminProducts = () => {
@@ -38,7 +40,7 @@ const AdminProducts = () => {
   const [isUpdatingShipping, setIsUpdatingShipping] = useState(false);
   
   // New state variables for category manager
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [isUpdatingCategories, setIsUpdatingCategories] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
@@ -56,6 +58,76 @@ const AdminProducts = () => {
   // Add these state variables at the top of the component
   const [sortField, setSortField] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+
+  // Add this function to render category options hierarchically
+  const renderCategoryOptions = (allCategories, parentId = null, level = 0) => {
+    // Create a Set to keep track of ancestors to prevent circular references
+    const ancestorIds = new Set();
+    
+    // Helper function to check for circular references
+    const buildCategoryPath = (catId, idsVisited = new Set()) => {
+      if (!catId || idsVisited.has(catId)) {
+        // We found a circular reference or reached a root category
+        return idsVisited;
+      }
+      
+      idsVisited.add(catId);
+      const category = allCategories.find(cat => cat._id === catId);
+      
+      if (category && category.parentCategory) {
+        return buildCategoryPath(category.parentCategory, idsVisited);
+      }
+      
+      return idsVisited;
+    };
+    
+    // Helper function for recursive rendering with circular reference check
+    const renderOptions = (parentId = null, level = 0, visitedIds = new Set()) => {
+      return allCategories
+        .filter(category => {
+          if (!category._id) return false; // Skip invalid categories
+          
+          // Skip if we've already visited this category (prevents circular references)
+          if (visitedIds.has(category._id)) return false;
+          
+          if (parentId === null) {
+            return !category.parentCategory;
+          } else {
+            return category.parentCategory === parentId;
+          }
+        })
+        .map(category => {
+          // Find parent category name for display if it's a subcategory
+          const parentName = level > 0 && category.parentCategory ? 
+            allCategories.find(p => p._id === category.parentCategory)?.name : null;
+          
+          // Create better visual hierarchy with icons/symbols
+          const prefix = level > 0 ? '\u00A0\u00A0'.repeat(level) + '↳ ' : '';
+          
+          // Create a new Set with the current path to avoid circular references
+          const newVisitedIds = new Set(visitedIds);
+          newVisitedIds.add(category._id);
+          
+          // Find if this category has direct children (ignoring circular references)
+          const hasChildren = allCategories.some(cat => 
+            cat.parentCategory === category._id && 
+            cat._id !== category._id &&  // Not itself
+            !visitedIds.has(cat._id)     // Not already visited
+          );
+          
+          return [
+            <option key={category._id} value={category._id}>
+              {prefix}{category.name}{level > 0 ? ` (${parentName ? `sub of ${parentName}` : 'subcategory'})` : ''}
+            </option>,
+            // Recursively render children with updated visitedIds to prevent circular references
+            ...(hasChildren ? renderOptions(category._id, level + 1, newVisitedIds) : [])
+          ];
+        })
+        .flat();
+    };
+    
+    return renderOptions(parentId, level);
+  };
 
   // Add these utility functions at the top of your component file
   const getAdminStoredItem = (key, defaultValue = null) => {
@@ -197,7 +269,7 @@ const AdminProducts = () => {
     const matchesSearch = 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || product.category.toString() === selectedCategory;
     const matchesStatus = selectedStatus === 'all' || product.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -357,12 +429,12 @@ const AdminProducts = () => {
   };
 
   // Handler for deleting a category
-  const handleDeleteCategory = async (categoryName) => {
+  const handleDeleteCategory = async (categoryId) => {
     try {
-      setCategoryToDelete(categoryName);
+      setCategoryToDelete(categoryId);
       
       const token = await user.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${encodeURIComponent(categoryName)}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${categoryId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -377,7 +449,7 @@ const AdminProducts = () => {
       // Fetch the updated list of categories instead of manipulating state
       await fetchCategories();
       
-      toast.success(`Category "${categoryName}" deleted successfully`);
+      toast.success('Category deleted successfully');
     } catch (error) {
       toast.error(error.message);
       console.error('Error deleting category:', error);
@@ -387,10 +459,10 @@ const AdminProducts = () => {
   };
 
   // Add this function to check products using a category before deletion
-  const checkProductsUsingCategory = async (category) => {
+  const checkProductsUsingCategory = async (categoryId) => {
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${encodeURIComponent(category)}/products`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${categoryId}/products`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -402,7 +474,7 @@ const AdminProducts = () => {
       
       const data = await response.json();
       setProductsUsingCategory(data);
-      setCategoryToView(category);
+      setCategoryToView(categoryId);
       setShowProductsUsingCategory(true);
     } catch (error) {
       toast.error(error.message);
@@ -411,16 +483,16 @@ const AdminProducts = () => {
   };
 
   // Add a method to reassign products before deletion
-  const handleReassignAndDelete = async (fromCategory, toCategory) => {
+  const handleReassignAndDelete = async (fromCategoryId, toCategoryId) => {
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${encodeURIComponent(fromCategory)}/reassign`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${fromCategoryId}/reassign`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ newCategory: toCategory })
+        body: JSON.stringify({ newCategoryId: toCategoryId })
       });
       
       if (!response.ok) {
@@ -429,7 +501,7 @@ const AdminProducts = () => {
       }
       
       // Now that products are reassigned, we can delete the category
-      await handleDeleteCategory(fromCategory);
+      await handleDeleteCategory(fromCategoryId);
       setShowProductsUsingCategory(false);
     } catch (error) {
       toast.error(error.message);
@@ -458,11 +530,15 @@ const AdminProducts = () => {
   }, []);
 
   // Replace the direct delete button click with this function
-  const confirmDeleteCategory = async (categoryName) => {
+  const confirmDeleteCategory = async (categoryId) => {
     try {
+      // Find category name for display
+      const category = categories.find(cat => cat._id === categoryId);
+      const categoryName = category ? category.name : 'this category';
+      
       // First check if the category is in use
       const token = await user.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${encodeURIComponent(categoryName)}/products`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${categoryId}/products`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -477,7 +553,7 @@ const AdminProducts = () => {
       if (productsUsingCategory.length > 0) {
         // Show warning modal with the list of products
         setProductsUsingCategory(productsUsingCategory);
-        setCategoryToDeleteWithProducts(categoryName);
+        setCategoryToDeleteWithProducts(categoryId);
         // Fetch the latest categories from MongoDB before showing the modal
         await fetchCategories();
         setShowCategoryWarningModal(true);
@@ -495,7 +571,7 @@ const AdminProducts = () => {
           confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
           if (result.isConfirmed) {
-            handleDeleteCategory(categoryName);
+            handleDeleteCategory(categoryId);
           }
         });
       }
@@ -544,6 +620,88 @@ const AdminProducts = () => {
     }
   }, []); // Empty dependency array means this runs once on component mount
 
+  // Add this function after handleDelete
+  const handleDuplicate = async (product) => {
+    try {
+      // Show confirmation with Swal
+      const result = await Swal.fire({
+        title: 'Duplicate Product',
+        text: `Are you sure you want to create a copy of "${product.name}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, duplicate it!'
+      });
+
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      // Start by showing a loading toast
+      const loadingToast = toast.loading('Duplicating product...');
+
+      const token = await user.getIdToken();
+      
+      // Find the category name from the categories list if we have it
+      let categoryName = '';
+      if (product.categoryName) {
+        // Use existing categoryName if available
+        categoryName = product.categoryName;
+      } else if (product.category) {
+        // Look up the category name from our categories list
+        const category = categories.find(cat => 
+          cat._id === product.category || 
+          cat._id?.toString() === product.category?.toString()
+        );
+        categoryName = category?.name || 'Uncategorized';
+      }
+      
+      // Clone the product object and make necessary modifications
+      const duplicatedProduct = {
+        ...product,
+        name: `${product.name} (Copy)`,
+        // Ensure categoryName is set
+        categoryName: categoryName,
+        // Remove _id so a new one will be generated
+        _id: undefined,
+        createdAt: undefined,
+        updatedAt: undefined
+      };
+      
+      // Send the duplicated product to the API
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(duplicatedProduct)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.text();
+        throw new Error(`Duplication failed: ${errorData}`);
+      }
+
+      // Get the new product data from the response
+      const newProduct = await res.json();
+
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success('Product duplicated successfully!');
+
+      // Add the new product to the state
+      setProducts([newProduct, ...products]);
+      
+      // Optional: Navigate to edit the new product
+      // navigate(`/admin/products/edit/${newProduct._id}`);
+    } catch (err) {
+      console.error('Duplication error:', err);
+      toast.error(err.message || 'Error duplicating product');
+    }
+  };
+
   if (!user || !adminChecked) return <div className="text-center text-gray-600">Loading...</div>;
   if (!isAdmin) {
     return (
@@ -575,7 +733,7 @@ const AdminProducts = () => {
               <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setShowCategoryModal(true)}
+                    onClick={() => setShowCategoryManager(true)}
                     className="px-4 py-2.5 flex items-center justify-center bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-white transition-all shadow-sm"
                   >
                     <FaTags className="mr-2" />
@@ -627,11 +785,7 @@ const AdminProducts = () => {
                   className="w-full px-4 py-2.5 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none transition-all duration-200"
                 >
                   <option value="all">All Categories</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
+                  {renderCategoryOptions(categories)}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -665,7 +819,22 @@ const AdminProducts = () => {
                   <span className="text-sm text-gray-500">Active filters:</span>
                   {selectedCategory !== 'all' && (
                     <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
-                      Category: {selectedCategory}
+                      Category: {
+                        (() => {
+                          const category = categories.find(cat => cat._id === selectedCategory);
+                          if (!category) return selectedCategory;
+                          
+                          // Check if it's a subcategory by finding its parent
+                          const parentCategory = category.parentCategory ? 
+                            categories.find(cat => cat._id === category.parentCategory) : null;
+                          
+                          if (parentCategory) {
+                            return `${parentCategory.name} › ${category.name}`;
+                          }
+                          
+                          return category.name;
+                        })()
+                      }
                     </span>
                   )}
                   {selectedStatus !== 'all' && (
@@ -901,6 +1070,13 @@ const AdminProducts = () => {
                                 Edit
                               </Link>
                               <button
+                                onClick={() => handleDuplicate(product)}
+                                className="flex items-center text-xs px-2 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+                              >
+                                <FaCopy className="mr-1" />
+                                Duplicate
+                              </button>
+                              <button
                                 onClick={() => handleDelete(product._id)}
                                 className="flex items-center text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
                               >
@@ -1024,135 +1200,12 @@ const AdminProducts = () => {
         </div>
       </Modal>
 
-      {/* Category Manager Modal */}
-      <Modal isOpen={showCategoryModal} onClose={() => setShowCategoryModal(false)}>
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-5">
-            <div className="flex items-center">
-              <FaTags className="w-6 h-6 text-purple-500 mr-3" />
-              <h3 className="text-xl font-bold text-gray-800">Manage Categories</h3>
-            </div>
-            <button
-              onClick={() => setShowCategoryModal(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Close"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="bg-purple-50 border border-purple-100 rounded-lg p-4 mb-6">
-            <div className="flex">
-              <svg className="w-5 h-5 text-purple-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-purple-700">
-                Manage product categories. Categories are used to organize products and improve navigation.
-              </p>
-            </div>
-          </div>
-          
-          {/* Add new category */}
-          <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6 shadow-sm">
-            <h4 className="text-base font-semibold text-gray-800 mb-3">Add New Category</h4>
-            <div className="flex">
-              <div className="relative flex-grow">
-                <input
-                  type="text"
-                  id="newCategory"
-                  placeholder="Enter category name"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                />
-              </div>
-              <button
-                onClick={handleAddCategory}
-                disabled={isUpdatingCategories || !newCategory.trim()}
-                className={`px-4 py-2.5 flex items-center justify-center bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-r-md hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all ${
-                  (isUpdatingCategories || !newCategory.trim()) ? 'opacity-60 cursor-not-allowed' : ''
-                }`}
-              >
-                {isUpdatingCategories ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Adding...
-                  </div>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="mt-2 text-xs text-gray-500">
-              Category names should be clear and descriptive.
-            </p>
-          </div>
-          
-          {/* Category list */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-base font-semibold text-gray-800">Current Categories</h4>
-              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{categories.length} categories</span>
-            </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-              {categories.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500 text-center">
-                  <svg className="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                  No categories found. Add your first category above.
-                </div>
-              ) : (
-                <ul className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
-                  {categories.map(category => (
-                    <li key={category} className="flex justify-between items-center p-3.5 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center">
-                        <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                        <span className="text-gray-800 font-medium">{category}</span>
-                      </div>
-                      <button
-                        onClick={() => confirmDeleteCategory(category)}
-                        className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-50 transition-colors duration-200"
-                        disabled={isUpdatingCategories}
-                        aria-label={`Delete ${category} category`}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <p className="mt-3 text-xs text-gray-500 flex items-start">
-              <svg className="w-4 h-4 text-red-400 mr-1 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>Categories in use by products will require reassignment before deletion.</span>
-            </p>
-          </div>
-          
-          <div className="flex justify-end pt-5 mt-6 border-t border-gray-200">
-            <button
-              onClick={() => setShowCategoryModal(false)}
-              className="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </Modal>
+      {/* Category Manager Component */}
+      <CategoryManager 
+        isOpen={showCategoryManager} 
+        onClose={() => setShowCategoryManager(false)} 
+        user={user}
+      />
 
       {/* Category warning modal */}
       {showCategoryWarningModal && (
@@ -1170,7 +1223,7 @@ const AdminProducts = () => {
               
               <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-4">
                 <p className="text-red-700">
-                  The category <span className="font-semibold">"{categoryToDeleteWithProducts}"</span> is currently being used by the following products:
+                  The category <span className="font-semibold">{categories.find(cat => cat._id === categoryToDeleteWithProducts)?.name || ''}</span> is currently being used by the following products:
                 </p>
               </div>
               
@@ -1212,9 +1265,9 @@ const AdminProducts = () => {
                 >
                   <option value="">Select a category</option>
                   {categories
-                    .filter(cat => cat !== categoryToDeleteWithProducts)
+                    .filter(cat => cat._id !== categoryToDeleteWithProducts)
                     .map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat._id} value={cat._id}>{cat.name}</option>
                     ))}
                 </select>
               </div>

@@ -1,12 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaStar, FaHeart, FaEye, FaShoppingCart, FaTags, FaClock, FaBox } from 'react-icons/fa';
+import { FaStar, FaHeart, FaEye, FaShoppingCart, FaTags, FaClock, FaBox, FaBug } from 'react-icons/fa';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import ImageLoader from '../common/ImageLoader';
+
+// Cache for category names to avoid redundant API calls
+const categoryCache = new Map();
+
+// Debug mode - set to true to show category debugging info
+const DEBUG_CATEGORIES = true;
 
 // Calculate how many days ago a date was
 const daysAgo = (dateString) => {
@@ -27,6 +33,8 @@ const ProductCard = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryDebugInfo, setCategoryDebugInfo] = useState(null);
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { user } = useAuth();
@@ -34,6 +42,137 @@ const ProductCard = ({
 
   // Config for compact mode
   const isCompact = gridLayout === 'compact';
+
+  // Function to get category ID from different possible formats
+  const getCategoryId = useCallback((categoryData) => {
+    if (!categoryData) return null;
+    
+    // Handle when it's an object with _id
+    if (typeof categoryData === 'object' && categoryData._id) {
+      return categoryData._id.toString();
+    }
+    
+    // Handle when it's a string ID
+    if (typeof categoryData === 'string') {
+      return categoryData;
+    }
+    
+    return null;
+  }, []);
+
+  // Fetch category name if we have a category ID
+  useEffect(() => {
+    const fetchCategoryName = async () => {
+      if (!product) return;
+      
+      // Create debug info object
+      const debugInfo = {
+        productId: product._id,
+        productName: product.name,
+        categoryType: typeof product.category,
+        categoryValue: product.category,
+        resolution: 'unknown',
+        lookupAttempts: [],
+      };
+      
+      // If category is already a name (non-ID string), use it directly
+      if (typeof product.category === 'string' && 
+          !product.category.match(/^[0-9a-fA-F]{24}$/)) {
+        setCategoryName(product.category);
+        debugInfo.resolution = 'direct_name';
+        if (DEBUG_CATEGORIES) setCategoryDebugInfo(debugInfo);
+        return;
+      }
+      
+      // If category is an object with a name, use it directly
+      if (typeof product.category === 'object' && product.category?.name) {
+        setCategoryName(product.category.name);
+        debugInfo.resolution = 'object_with_name';
+        if (DEBUG_CATEGORIES) setCategoryDebugInfo(debugInfo);
+        return;
+      }
+      
+      // Get the category ID
+      const categoryId = getCategoryId(product.category);
+      if (!categoryId) {
+        setCategoryName('Uncategorized');
+        debugInfo.resolution = 'no_valid_id';
+        if (DEBUG_CATEGORIES) setCategoryDebugInfo(debugInfo);
+        return;
+      }
+      
+      // Check cache first
+      if (categoryCache.has(categoryId)) {
+        setCategoryName(categoryCache.get(categoryId));
+        debugInfo.resolution = 'from_cache';
+        if (DEBUG_CATEGORIES) setCategoryDebugInfo(debugInfo);
+        return;
+      }
+      
+      try {
+        // Try to fetch from the global categories list first (this is more efficient)
+        if (window.categoriesList && Array.isArray(window.categoriesList)) {
+          const category = window.categoriesList.find(cat => {
+            const catId = cat.id || (cat._id ? cat._id.toString() : null);
+            return catId === categoryId;
+          });
+          
+          if (category && category.name) {
+            setCategoryName(category.name);
+            categoryCache.set(categoryId, category.name);
+            debugInfo.resolution = 'from_global_list';
+            if (DEBUG_CATEGORIES) setCategoryDebugInfo(debugInfo);
+            return;
+          }
+        }
+        
+        // Fallback to API fetch if we couldn't find it in the global list
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/categories/${categoryId}`);
+        
+        if (response.ok) {
+          const categoryData = await response.json();
+          if (categoryData && categoryData.name) {
+            setCategoryName(categoryData.name);
+            categoryCache.set(categoryId, categoryData.name);
+            debugInfo.resolution = 'from_api';
+          } else {
+            setCategoryName('Uncategorized');
+            debugInfo.resolution = 'api_no_name';
+          }
+        } else {
+          // For debugging - log the API error
+          console.error(`Failed to fetch category name for ID: ${categoryId}, Status: ${response.status}`);
+          setCategoryName('Uncategorized');
+          debugInfo.resolution = 'api_error';
+        }
+      } catch (error) {
+        console.error('Error fetching category name:', error);
+        setCategoryName('Uncategorized');
+        debugInfo.resolution = 'exception';
+      }
+      
+      if (DEBUG_CATEGORIES) setCategoryDebugInfo(debugInfo);
+    };
+    
+    // Set category name immediately if we can, otherwise fetch it
+    if (product && product.category) {
+      // For objects with name property, use directly
+      if (typeof product.category === 'object' && product.category.name) {
+        setCategoryName(product.category.name);
+      } 
+      // For non-ID strings, use directly
+      else if (typeof product.category === 'string' && 
+               !product.category.match(/^[0-9a-fA-F]{24}$/)) {
+        setCategoryName(product.category);
+      }
+      // Otherwise fetch/lookup the name
+      else {
+        fetchCategoryName();
+      }
+    } else {
+      setCategoryName('Uncategorized');
+    }
+  }, [product, getCategoryId]);
 
   if (!product) return null;
 
@@ -45,6 +184,67 @@ const ProductCard = ({
   
   // Check if product has limited stock
   const hasLimitedStock = product.stock && product.stock <= 5;
+
+  // Helper function to get display-ready category name
+  const getDisplayCategory = () => {
+    // If we have a resolved name, use it
+    if (categoryName) return categoryName;
+    
+    // For direct object access with name
+    if (typeof product.category === 'object' && product.category && product.category.name) {
+      return product.category.name;
+    }
+    
+    // For non-ID strings
+    if (typeof product.category === 'string' && 
+        !product.category.match(/^[0-9a-fA-F]{24}$/)) {
+      return product.category;
+    }
+    
+    // Try to look up from global categories list
+    if (typeof window !== 'undefined' && window.categoriesList && 
+        Array.isArray(window.categoriesList) && product.category) {
+      const categoryId = getCategoryId(product.category);
+      const category = window.categoriesList.find(cat => 
+        cat.id === categoryId || cat._id === categoryId
+      );
+      if (category && category.name) {
+        // Store in cache for future use
+        if (categoryId) categoryCache.set(categoryId, category.name);
+        return category.name;
+      }
+    }
+    
+    return 'Uncategorized';
+  };
+
+  // Check if this product has category issues (for debugging)
+  const hasCategoryIssue = DEBUG_CATEGORIES && 
+    getDisplayCategory() === 'Uncategorized' && 
+    product.category && 
+    categoryDebugInfo;
+
+  // Handle debug icon click
+  const handleDebugClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (categoryDebugInfo) {
+      console.group(`🐞 Category Debug for "${product.name}"`);
+      console.log('Debug Info:', categoryDebugInfo);
+      console.log('Raw Category:', product.category);
+      
+      // Check global list
+      if (window.categoriesList) {
+        console.log('Global Categories List Length:', window.categoriesList.length);
+        const categoryId = getCategoryId(product.category);
+        console.log('Looking for category ID:', categoryId);
+      }
+      
+      console.log('Cache entries:', [...categoryCache.entries()]);
+      console.groupEnd();
+    }
+  };
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -114,10 +314,21 @@ const ProductCard = ({
           <div className={`relative ${isCompact ? 'h-48' : 'h-64'} overflow-hidden bg-gray-100`}>
             <ImageLoader 
               src={product.image || 'https://via.placeholder.com/400x300'} 
-              alt={`${product.name} - ${product.category} Korean skincare product`}
+              alt={`${product.name} - ${getDisplayCategory()} Korean skincare product`}
               className="w-full h-full object-cover object-center"
               placeholderColor="#f9fafb"
             />
+            
+            {/* Category debug indicator */}
+            {hasCategoryIssue && (
+              <button
+                onClick={handleDebugClick}
+                className="absolute top-14 left-3 p-1.5 bg-amber-500 text-white rounded-full z-50 shadow-md hover:bg-amber-600 transition-colors"
+                aria-label="Debug category issue"
+              >
+                <FaBug size={14} />
+              </button>
+            )}
             
             {/* Quick Actions Overlay - Only visible on hover */}
             {withActions && (
@@ -187,7 +398,7 @@ const ProductCard = ({
             {/* Category Tag */}
             <div className="absolute bottom-3 left-3">
               <span className={`inline-block bg-[#363a94] text-white ${isCompact ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} rounded-md`}>
-                {product.category || 'Uncategorized'}
+                {getDisplayCategory()}
               </span>
             </div>
             
@@ -310,7 +521,7 @@ const ProductCard = ({
               <div className="h-full">
                 <ImageLoader 
                   src={product.image || 'https://via.placeholder.com/400x300'} 
-                  alt={`${product.name} - ${product.category} Korean skincare product`}
+                  alt={`${product.name} - ${getDisplayCategory()} Korean skincare product`}
                   className="w-full h-full object-cover md:object-contain"
                   placeholderColor="#f9fafb"
                 />
@@ -320,7 +531,7 @@ const ProductCard = ({
             {/* Category Badge - Now at top */}
             <div className="absolute top-3 left-3 z-10">
               <span className="inline-block bg-[#363a94] text-white text-xs px-2 py-1 rounded-md shadow-sm">
-                {product.category || 'Uncategorized'}
+                {getDisplayCategory()}
               </span>
             </div>
           </div>
@@ -384,7 +595,7 @@ const ProductCard = ({
             <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-center text-sm text-gray-600">
                 <FaTags className="text-[#363a94] mr-2" />
-                <span>Category: <span className="font-medium">{product.category}</span></span>
+                <span>Category: <span className="font-medium">{getDisplayCategory()}</span></span>
               </div>
               
               <div className="flex items-center text-sm text-gray-600">
@@ -400,74 +611,67 @@ const ProductCard = ({
               </div>
               
               <div className="flex items-center text-sm text-gray-600">
-                <FaShoppingCart className="text-[#363a94] mr-2" />
-                <span>Min. Order: <span className="font-medium">{product.minOrder || 1} pcs</span></span>
+                <svg className="text-[#363a94] mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+                </svg>
+                <span>Min Order: <span className="font-medium">{product.minOrder} {product.minOrder === 1 ? 'piece' : 'pieces'}</span></span>
               </div>
             </div>
             
-            {/* Price and CTA - Now more prominent */}
-            <div className="mt-auto pt-4 border-t border-gray-100 flex flex-wrap md:flex-nowrap items-center justify-between gap-4">
-              {/* Price Section */}
+            {/* Action buttons and price */}
+            <div className="mt-auto flex flex-wrap items-center justify-between gap-4">
               {user && isEmailVerified ? (
-                <div className="flex flex-col">
-                  <div className="font-bold text-2xl text-[#363a94]">
-                    {isOnSale ? (
-                      <>
-                        <span className="text-red-500">₱{((1 - product.discount / 100) * product.price).toLocaleString()}</span>
-                        <span className="text-gray-400 text-sm line-through ml-2">₱{product.price.toLocaleString()}</span>
-                      </>
-                    ) : (
-                      <span>₱{product.price.toLocaleString()}</span>
-                    )}
-                  </div>
-                  {isOnSale && (
-                    <span className="text-green-600 text-sm font-medium mt-1">
-                      Save {product.discount}% ({Math.round(product.discount / 100 * product.price).toLocaleString()} PHP)
-                    </span>
+                <div className="font-bold text-xl text-[#363a94]">
+                  {isOnSale ? (
+                    <>
+                      <span className="text-red-500">₱{((1 - product.discount / 100) * product.price).toLocaleString()}</span>
+                      <span className="text-gray-400 text-base line-through ml-2">₱{product.price.toLocaleString()}</span>
+                    </>
+                  ) : (
+                    <span>₱{product.price.toLocaleString()}</span>
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col">
-                  <div className="flex items-center text-gray-500">
-                    <svg className="mr-1.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div>
+                  <div className="flex items-center text-gray-500 mb-1">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span className="font-medium text-lg">Price hidden</span>
+                    <span className="font-medium">Price hidden</span>
                   </div>
                   {!user ? (
-                    <Link to="/login" className="text-sm text-[#363a94] hover:text-[#2a2e75] underline mt-1">
+                    <Link to="/login" className="text-sm text-[#363a94] hover:text-[#2a2e75] underline">
                       Login to see price
                     </Link>
                   ) : (
-                    <span className="text-sm text-[#363a94] mt-1">Verify email to see price</span>
+                    <span className="text-sm text-[#363a94]">Verify email to see price</span>
                   )}
                 </div>
               )}
               
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <Link 
-                  to={`/products/${product._id}`}
-                  className="px-6 py-3 bg-white border border-[#363a94] text-[#363a94] rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center"
-                >
-                  <FaEye className="mr-2" />
-                  Details
-                </Link>
-                
+              <div className="flex space-x-2">
                 {user && isEmailVerified && (
                   <button
                     onClick={handleAddToCart}
                     disabled={isAddingToCart}
-                    className={`px-6 py-3 rounded-lg font-medium flex items-center ${
+                    className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isAddingToCart 
-                        ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
-                        : 'bg-[#363a94] text-white hover:bg-[#2a2d73] transition-colors'
+                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+                      : 'bg-[#363a94] text-white hover:bg-[#2a2d73] shadow-sm hover:shadow-md'
                     }`}
                   >
                     <FaShoppingCart className="mr-2" />
                     {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                   </button>
                 )}
+                
+                <button
+                  onClick={handleQuickView}
+                  className="flex items-center px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium transition-colors shadow-sm hover:shadow-md"
+                >
+                  <FaEye className="mr-2" />
+                  Quick View
+                </button>
               </div>
             </div>
           </div>
@@ -476,5 +680,11 @@ const ProductCard = ({
     );
   }
 };
+
+// Store categories globally for efficient lookup
+// This will be populated by the Products page
+if (typeof window !== 'undefined' && !window.categoriesList) {
+  window.categoriesList = [];
+}
 
 export default ProductCard; 

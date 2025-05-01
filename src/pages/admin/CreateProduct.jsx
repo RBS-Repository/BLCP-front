@@ -1,13 +1,178 @@
 import { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { FaCamera, FaImages, FaRegTrashAlt, FaUpload, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCamera, FaImages, FaRegTrashAlt, FaUpload, FaInfoCircle, FaExclamationTriangle, FaPlus, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
+
+/**
+ * IMPORTANT NOTE FOR IMAGE UPLOADS:
+ * For optimal performance and user experience, please use:
+ * - WebP format images whenever possible (better compression, smaller file size)
+ * - Images under 2MB in size
+ * - Compress images before uploading to improve page load times
+ * - Consider dimensions appropriate for display context to avoid unnecessary file size
+ */
+
+// Helper component to display the full category path/breadcrumb
+const CategoryPathDisplay = ({ categoryId, categories }) => {
+  if (!categoryId || !categories || categories.length === 0) return null;
+  
+  // Build the full path recursively
+  const buildCategoryPath = (id, path = []) => {
+    const category = categories.find(cat => cat._id === id);
+    if (!category) return path;
+    
+    // Add this category to the path
+    path.unshift(category);
+    
+    // If there's a parent, add it recursively
+    if (category.parentCategory) {
+      return buildCategoryPath(category.parentCategory, path);
+    }
+    
+    return path;
+  };
+  
+  const categoryPath = buildCategoryPath(categoryId);
+  
+  // Get the selected category
+  const selectedCategory = categories.find(cat => cat._id === categoryId);
+  
+  // Get the count of child categories (if any)
+  const childCategories = categories.filter(cat => 
+    cat.parentCategory === categoryId
+  );
+  
+  // Always show the selected category info
+  return (
+    <div className="mt-2 space-y-2">
+      {/* Show the path if more than one category */}
+      {categoryPath.length > 1 && (
+        <div className="px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-md">
+          <p className="text-xs text-indigo-700 flex items-center">
+            <svg className="w-3 h-3 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span>Category path: </span>
+            <span className="font-medium ml-1">
+              {categoryPath.map((cat, index) => (
+                <span key={cat._id} className="flex-inline items-center">
+                  {index > 0 && <span className="mx-1 text-indigo-400">›</span>}
+                  <span className={index === categoryPath.length - 1 ? "font-semibold" : ""}>{cat.name}</span>
+                </span>
+              ))}
+            </span>
+          </p>
+        </div>
+      )}
+      
+      {/* Always show selected category info */}
+      <div className={`px-3 py-2 rounded-md ${categoryPath.length > 1 ? 'bg-blue-50 border border-blue-100' : 'bg-indigo-50 border border-indigo-100'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <svg className="w-3 h-3 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <p className="text-xs font-medium">
+              {selectedCategory?.name} 
+              <span className="ml-1 text-gray-500">{selectedCategory?.level > 0 ? '(subcategory)' : '(main category)'}</span>
+            </p>
+          </div>
+          
+          {/* Show child category count if this is a parent */}
+          {childCategories.length > 0 && (
+            <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
+              {childCategories.length} subcategories
+            </span>
+          )}
+        </div>
+        {selectedCategory?.description && (
+          <p className="text-xs text-gray-600 mt-1 ml-4">{selectedCategory.description}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Helper function to generate variation combinations
+const generateVariationCombinations = (variationTypes) => {
+  if (!variationTypes || variationTypes.length === 0) return [];
+
+  // Get all options by variation type
+  const optionsByType = variationTypes.map(type => 
+    type.options.map(option => ({ 
+      typeName: type.name, 
+      optionName: option.name,
+      priceAdjustment: option.priceAdjustment || 0
+    }))
+  );
+
+  // Helper function to recursively combine options
+  const combineOptions = (current, restOptions, index = 0) => {
+    // Base case: no more variation types to process
+    if (index >= optionsByType.length) {
+      return [current];
+    }
+
+    // Get options for current variation type
+    const currentTypeOptions = optionsByType[index];
+    
+    // Generate combinations with each option
+    let combinations = [];
+    for (const option of currentTypeOptions) {
+      // Create a new object for optionValues
+      const newValues = { ...current.optionValues };
+      newValues[option.typeName] = option.optionName;
+      
+      // Calculate price by adding adjustments
+      const newPrice = current.price + option.priceAdjustment;
+      
+      // Create new combination object
+      const newCombination = {
+        ...current,
+        optionValues: newValues,
+        price: newPrice,
+        sku: '', // Will be auto-generated by the backend
+        stock: current.stock
+      };
+      
+      // Recursively generate combinations with remaining types
+      const newCombinations = combineOptions(newCombination, restOptions, index + 1);
+      combinations = [...combinations, ...newCombinations];
+    }
+    
+    return combinations;
+  };
+
+  // Start with an empty combination
+  const initialCombination = {
+    optionValues: {},
+    price: 0,
+    stock: 0
+  };
+  
+  return combineOptions(initialCombination, optionsByType);
+};
 
 const CreateProduct = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Note visibility state
+  const [showImageNote, setShowImageNote] = useState(() => {
+    // Get saved preference from localStorage or default to true (shown)
+    return localStorage.getItem('showImageNote') !== 'false';
+  });
+  
+  // Toggle note visibility
+  const toggleImageNote = () => {
+    const newValue = !showImageNote;
+    setShowImageNote(newValue);
+    localStorage.setItem('showImageNote', newValue.toString());
+  };
+  
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFiles, setImageFiles] = useState([]);
@@ -21,6 +186,88 @@ const CreateProduct = () => {
   
   // Maximum file size in bytes (2MB)
   const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+  // Helper function to render category options hierarchically
+  const renderCategoryOptions = (allCategories, parentId = null, level = 0) => {
+    // Create a Set to keep track of ancestors to prevent circular references
+    const ancestorIds = new Set();
+    
+    // Helper function for recursive rendering with circular reference check
+    const renderOptions = (parentId = null, level = 0, visitedIds = new Set()) => {
+      return allCategories
+        .filter(category => {
+          if (!category._id) return false; // Skip invalid categories
+          
+          // Skip if we've already visited this category (prevents circular references)
+          if (visitedIds.has(category._id)) return false;
+          
+          if (parentId === null) {
+            // Root categories have no parent
+            return !category.parentCategory;
+          } else {
+            // For child categories, ensure proper string comparison of IDs
+            const catParentId = typeof category.parentCategory === 'object' && category.parentCategory?._id 
+              ? category.parentCategory._id.toString() 
+              : category.parentCategory ? category.parentCategory.toString() : null;
+            
+            const compareParentId = parentId ? parentId.toString() : null;
+            return catParentId === compareParentId;
+          }
+        })
+        .map(category => {
+          // Convert category ID to string for consistent comparison
+          const categoryId = category._id ? category._id.toString() : null;
+          
+          // Find parent category name for display if it's a subcategory
+          const parentCategory = level > 0 && category.parentCategory ? 
+            allCategories.find(p => p._id === category.parentCategory || 
+              (typeof p._id === 'object' && p._id?._id === category.parentCategory)) : null;
+          
+          const parentName = parentCategory?.name;
+          
+          // Build clear hierarchy visual with indentation and symbols
+          const indent = level > 0 ? '\u00A0\u00A0'.repeat(level) : '';
+          const prefix = level > 0 ? `${indent}↳ ` : '';
+          
+          // Create a new Set with the current path to avoid circular references
+          const newVisitedIds = new Set(visitedIds);
+          newVisitedIds.add(categoryId);
+          
+          // Find if this category has direct children (ignoring circular references)
+          const hasChildren = allCategories.some(cat => {
+            const childParentId = typeof cat.parentCategory === 'object' && cat.parentCategory?._id
+              ? cat.parentCategory._id.toString()
+              : cat.parentCategory ? cat.parentCategory.toString() : null;
+            
+            return childParentId === categoryId && 
+                  cat._id !== categoryId &&  // Not itself
+                  !visitedIds.has(cat._id);  // Not already visited
+          });
+          
+          // Format category label with clear parent information
+          let categoryLabel = prefix + category.name;
+          
+          // For subcategories, add parent information
+          if (level > 0) {
+            categoryLabel += ` (${parentName ? `child of ${parentName}` : 'subcategory'})`;
+          } else if (hasChildren) {
+            // For parent categories, indicate they have children
+            categoryLabel += ' (parent)';
+          }
+          
+          return [
+            <option key={categoryId} value={categoryId} data-level={level} data-has-children={hasChildren}>
+              {categoryLabel}
+            </option>,
+            // If this category has children, render them with increased level
+            ...(hasChildren ? renderOptions(categoryId, level + 1, newVisitedIds) : [])
+          ];
+        })
+        .flat();
+    };
+    
+    return renderOptions(parentId, level);
+  };
 
   // Function to check file size
   const validateFileSize = (file) => {
@@ -37,6 +284,12 @@ const CreateProduct = () => {
     else return (size / 1048576).toFixed(1) + ' MB';
   };
 
+  // New state for variations
+  const [hasVariations, setHasVariations] = useState(false);
+  const [variationTypes, setVariationTypes] = useState([]);
+  const [generatedVariations, setGeneratedVariations] = useState([]);
+  const [showVariationTable, setShowVariationTable] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -49,6 +302,9 @@ const CreateProduct = () => {
     image: null,
     images: [],
     status: 'active',
+    hasVariations: false,
+    variationTypes: [],
+    variations: []
   });
 
   const handleInputChange = (e) => {
@@ -212,6 +468,102 @@ const CreateProduct = () => {
     setImageFiles(newFiles);
   };
 
+  // Function to add a new variation type (e.g., Size, Color)
+  const addVariationType = () => {
+    const newType = {
+      name: '',
+      options: [{ name: '', priceAdjustment: 0 }]
+    };
+    setVariationTypes([...variationTypes, newType]);
+  };
+
+  // Function to update variation type name
+  const updateVariationTypeName = (index, name) => {
+    const updatedTypes = [...variationTypes];
+    updatedTypes[index].name = name;
+    setVariationTypes(updatedTypes);
+  };
+
+  // Function to add an option to a variation type
+  const addVariationOption = (typeIndex) => {
+    const updatedTypes = [...variationTypes];
+    updatedTypes[typeIndex].options.push({ name: '', priceAdjustment: 0 });
+    setVariationTypes(updatedTypes);
+  };
+
+  // Function to update a variation option
+  const updateVariationOption = (typeIndex, optionIndex, field, value) => {
+    const updatedTypes = [...variationTypes];
+    updatedTypes[typeIndex].options[optionIndex][field] = field === 'priceAdjustment' 
+      ? parseFloat(value) 
+      : value;
+    setVariationTypes(updatedTypes);
+  };
+
+  // Function to remove a variation option
+  const removeVariationOption = (typeIndex, optionIndex) => {
+    const updatedTypes = [...variationTypes];
+    updatedTypes[typeIndex].options.splice(optionIndex, 1);
+    setVariationTypes(updatedTypes);
+  };
+
+  // Function to remove a variation type
+  const removeVariationType = (index) => {
+    const updatedTypes = [...variationTypes];
+    updatedTypes.splice(index, 1);
+    setVariationTypes(updatedTypes);
+  };
+
+  // Function to generate variation combinations
+  const generateVariations = () => {
+    // Validate that all variation types and options have names
+    const isValid = variationTypes.every(type => 
+      type.name.trim() !== '' && 
+      type.options.every(option => option.name.trim() !== '')
+    );
+
+    if (!isValid) {
+      toast.error('All variation types and options must have names');
+      return;
+    }
+
+    // Generate all possible combinations
+    const basePrice = parseFloat(formData.price);
+    const variations = generateVariationCombinations(variationTypes).map(variation => ({
+      ...variation,
+      price: basePrice + (variation.price || 0),
+      stock: formData.stock
+    }));
+
+    setGeneratedVariations(variations);
+    setShowVariationTable(true);
+  };
+
+  // Function to update a specific variation
+  const updateVariation = (index, field, value) => {
+    const updatedVariations = [...generatedVariations];
+    if (field === 'stock' || field === 'price') {
+      updatedVariations[index][field] = Number(value);
+    } else {
+      updatedVariations[index][field] = value;
+    }
+    setGeneratedVariations(updatedVariations);
+  };
+
+  // Handle variation checkbox change
+  const handleVariationToggle = (e) => {
+    const isChecked = e.target.checked;
+    setHasVariations(isChecked);
+    setFormData(prev => ({ ...prev, hasVariations: isChecked }));
+    
+    if (!isChecked) {
+      // Reset variations when toggled off
+      setVariationTypes([]);
+      setGeneratedVariations([]);
+      setShowVariationTable(false);
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
     
@@ -222,20 +574,48 @@ const CreateProduct = () => {
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.image) newErrors.image = 'Main product image is required';
     
+    // Validate variations if enabled
+    if (formData.hasVariations) {
+      if (variationTypes.length === 0) {
+        newErrors.variationTypes = 'At least one variation type is required';
+      } else {
+        // Check if all variation types have a name and at least one option
+        const invalidTypes = variationTypes.some(type => 
+          !type.name.trim() || type.options.length === 0
+        );
+        
+        if (invalidTypes) {
+          newErrors.variationTypes = 'All variation types must have a name and at least one option';
+        }
+        
+        // Check if variations have been generated
+        if (generatedVariations.length === 0) {
+          newErrors.variations = 'You must generate variations before saving';
+        }
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const validationErrors = validateForm();
     
-    if (!validateForm()) {
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       toast.error('Please fix the errors before submitting');
       return;
     }
     
     setLoading(true);
+    setErrors({});
+    
     try {
+      // Log the form data for debugging
+      console.log('Submitting product with data:', formData);
+
       let mainImageUrl = '';
       if (formData.image) {
         const cloudData = new FormData();
@@ -271,6 +651,7 @@ const CreateProduct = () => {
         description: formData.description,
         price: Number(formData.price),
         category: formData.category,
+        categoryName: categories.find(cat => cat._id === formData.category)?.name || '',
         stock: Number(formData.stock),
         minOrder: Number(formData.minOrder),
         targetMarketKeyFeatures: Array.isArray(formData.targetMarketKeyFeatures)
@@ -281,12 +662,18 @@ const CreateProduct = () => {
           : formData.targetMarket.toString().split('\n').filter((line) => line.trim() !== ''),
         status: formData.status,
         image: mainImageUrl,
-        images: additionalImageUrls.length > 0 ? additionalImageUrls : []
+        images: additionalImageUrls.length > 0 ? additionalImageUrls : [],
+        hasVariations: formData.hasVariations,
+        variationTypes: formData.hasVariations ? JSON.stringify(variationTypes) : undefined,
+        variations: formData.hasVariations ? JSON.stringify(generatedVariations) : undefined
       };
 
+      // Add additional validation for required fields
       if (payload.stock === undefined || payload.stock === null) {
         throw new Error('Stock value is required');
       }
+
+      console.log('Sending payload to server:', payload);
 
       await user.getIdToken(true);
       const tokenResult = await user.getIdTokenResult();
@@ -294,6 +681,9 @@ const CreateProduct = () => {
 
       const token = await user.getIdToken();
       if (!token) throw new Error('No token available');
+
+      // Log the API URL for debugging
+      console.log('API URL:', `${import.meta.env.VITE_API_BASE_URL}/products`);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products`, {
         method: 'POST',
@@ -304,12 +694,34 @@ const CreateProduct = () => {
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error('Failed to create product');
+      // If the response is not ok, try to get more error details
+      if (!response.ok) {
+        let errorMessage = 'Failed to create product';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          console.error('Server error response:', errorData);
+        } catch (parseError) {
+          console.error('Could not parse error response:', parseError);
+          // If we can't parse the response, try to get the status text
+          errorMessage = `${response.status}: ${response.statusText || errorMessage}`;
+        }
+        throw new Error(errorMessage);
+      }
 
+      const responseData = await response.json();
+      console.log('Product created successfully:', responseData);
       toast.success('Product created successfully!');
       navigate('/admin/products');
     } catch (error) {
+      console.error('Error creating product:', error);
       toast.error(error.message || 'Failed to create product');
+      
+      // Display more detailed error for debugging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Full error details:', error);
+        toast.error(`Error details: ${error.toString()}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -346,22 +758,58 @@ const CreateProduct = () => {
     if (user) verifyAdmin();
   }, [user]);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/categories`
-        );
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
-        }
-        const data = await response.json();
-        setCategories(data);
-      } catch (error) {
-        toast.error('Failed to load categories');
+  const fetchCategories = async () => {
+    try {
+      console.log('Fetching categories for product creation...');
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/categories`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
       }
-    };
-    
+      const data = await response.json();
+      
+      // Normalize categories to ensure consistent ID format and parent-child relationships
+      const normalizedCategories = data.map(category => {
+        // Create a clean category object with consistent ID handling
+        return {
+          ...category,
+          // Ensure _id is available as string for consistent comparison
+          _id: category._id ? category._id.toString() : null,
+          // Normalize parentCategory - convert from object if needed
+          parentCategory: category.parentCategory 
+            ? (typeof category.parentCategory === 'object' && category.parentCategory._id 
+                ? category.parentCategory._id.toString() 
+                : category.parentCategory.toString())
+            : null
+        };
+      });
+      
+      // Log category hierarchy for debugging
+      console.log(`Loaded ${normalizedCategories.length} categories`);
+      
+      // Check parent-child relationships
+      normalizedCategories.forEach(cat => {
+        if (cat.parentCategory) {
+          const parentExists = normalizedCategories.some(p => p._id === cat.parentCategory);
+          console.log(`Category "${cat.name}" (Level ${cat.level || 0}) has parent: ${
+            parentExists 
+              ? normalizedCategories.find(p => p._id === cat.parentCategory)?.name 
+              : 'Unknown/Missing'
+          }`);
+        } else {
+          console.log(`Root category: "${cat.name}" (Level ${cat.level || 0})`);
+        }
+      });
+      
+      setCategories(normalizedCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to load categories');
+    }
+  };
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
@@ -447,7 +895,7 @@ const CreateProduct = () => {
                   ) : (
                     <div className="h-full flex items-center justify-center text-gray-400">
                       <div className="text-center px-4">
-                        <FaUpload className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                        <FaCamera className="mx-auto h-10 w-10 text-gray-300 mb-2" />
                         <p className="text-gray-500 font-medium">Drag & drop main image here</p>
                         <p className="text-gray-400 text-sm mt-1">or click to browse files</p>
                         {errors.image && <p className="text-red-500 text-sm mt-2">{errors.image}</p>}
@@ -600,16 +1048,35 @@ const CreateProduct = () => {
                   <select
                         name="category"
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className={`w-full h-11 pl-4 pr-8 rounded-lg appearance-none ${errors.category ? 'border-red-300 bg-red-50' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all duration-200`}
+                    onChange={(e) => {
+                      // Find the selected category for additional information
+                      const selectedCategoryId = e.target.value;
+                      const selectedCategory = categories.find(cat => cat._id === selectedCategoryId);
+                      
+                      // Update form data with selected category
+                      setFormData({ 
+                        ...formData, 
+                        category: selectedCategoryId,
+                        // Clear existing error if any
+                        ...(errors.category ? { errors: { ...errors, category: null } } : {})
+                      });
+                      
+                      // Log selected category for debugging
+                      if (selectedCategory) {
+                        console.log(`Selected category: ${selectedCategory.name} (Level ${selectedCategory.level || 0})`);
+                        if (selectedCategory.parentCategory) {
+                          const parentCategory = categories.find(cat => cat._id === selectedCategory.parentCategory);
+                          console.log(`Parent category: ${parentCategory ? parentCategory.name : 'Unknown'}`);
+                        }
+                      }
+                    }}
+                        className={`w-full h-11 pl-4 pr-8 rounded-lg appearance-none ${
+                          errors.category ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                        } focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all duration-200`}
                     required
                   >
                     <option value="" disabled>Select a category</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
+                    {renderCategoryOptions(categories)}
                   </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
                         <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -623,6 +1090,14 @@ const CreateProduct = () => {
                           </svg>
                           {errors.category}
                         </div>
+                      )}
+                      
+                      {/* Show full category path if a subcategory is selected */}
+                      {formData.category && categories.length > 0 && (
+                        <CategoryPathDisplay 
+                          categoryId={formData.category} 
+                          categories={categories} 
+                        />
                       )}
                     </div>
                 </div>
@@ -846,6 +1321,202 @@ const CreateProduct = () => {
             </div>
           </div>
         </div>
+
+        {/* Variations Toggle 
+        <div className="variations-toggle mt-8">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="hasVariations"
+              checked={hasVariations}
+              onChange={handleVariationToggle}
+              className="w-4 h-4 text-blue-600"
+            />
+            <label htmlFor="hasVariations" className="text-lg font-medium">
+              This product has variations (size, color, etc.)
+            </label>
+          </div>
+          {errors.variations && (
+            <p className="text-red-500 text-sm mt-1">{errors.variations}</p>
+          )}
+        </div>
+        */}
+        {/* Variations Section */}
+        {hasVariations && (
+          <div className="variations-section mt-4 p-6 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold mb-4">Product Variations</h3>
+            
+            {/* Beauty Product Variations Instructions */}
+            <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-100">
+              <h4 className="text-blue-700 font-medium mb-2">Instructions for Beauty Product Variations</h4>
+              <ul className="text-sm text-blue-600 space-y-2 ml-4 list-disc">
+                <li>Add variation types such as <strong>Size</strong> (e.g., 30ml, 50ml, 100ml), <strong>Shade</strong> (e.g., Light, Medium, Dark), or <strong>Fragrance</strong> (e.g., Floral, Citrus)</li>
+                <li>For each option, you can set a price adjustment (e.g., +50 for larger sizes)</li>
+                <li>All SKUs will be automatically generated - no need to enter them manually</li>
+                <li>After adding all variation types and options, click "Generate Variations" to create all combinations</li>
+                <li>For each variation, you can then set specific stock levels and override prices if needed</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Variation Types */}
+              {variationTypes.map((type, typeIndex) => (
+                <div key={typeIndex} className="variation-type p-4 bg-white rounded-md shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Variation Type (e.g., Size, Shade, Fragrance)
+                      </label>
+                      <input
+                        type="text"
+                        value={type.name}
+                        onChange={(e) => updateVariationTypeName(typeIndex, e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        placeholder="Enter variation type name"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeVariationType(typeIndex)}
+                      className="ml-2 p-2 text-red-500 hover:text-red-700"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                  
+                  {/* Variation Options */}
+                  <div className="variation-options ml-4 space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Options
+                    </label>
+                    
+                    {type.options.map((option, optionIndex) => (
+                      <div key={optionIndex} className="flex items-center space-x-2 mb-2">
+                        <input
+                          type="text"
+                          value={option.name}
+                          onChange={(e) => updateVariationOption(typeIndex, optionIndex, 'name', e.target.value)}
+                          className="flex-1 p-2 border border-gray-300 rounded-md"
+                          placeholder="Option name (e.g., 30ml, Light, Floral)"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center">
+                            <span className="mr-1">+/-</span>
+                            <input
+                              type="number"
+                              value={option.priceAdjustment}
+                              onChange={(e) => updateVariationOption(typeIndex, optionIndex, 'priceAdjustment', e.target.value)}
+                              className="flex-1 p-2 border border-gray-300 rounded-md"
+                              placeholder="Price adjustment"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeVariationOption(typeIndex, optionIndex)}
+                          className="p-2 text-red-500 hover:text-red-700"
+                        >
+                          <FaTimes />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={() => addVariationOption(typeIndex)}
+                      className="mt-2 inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      <FaPlus className="mr-2" /> Add Option
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              <button
+                type="button"
+                onClick={addVariationType}
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                <FaPlus className="mr-2" /> Add Variation Type
+              </button>
+              
+              {variationTypes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={generateVariations}
+                  className="ml-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                >
+                  Generate Variations
+                </button>
+              )}
+            </div>
+            
+            {/* Generated Variations Table */}
+            {showVariationTable && generatedVariations.length > 0 && (
+              <div className="generated-variations mt-6">
+                <h4 className="text-md font-semibold mb-3">Generated Variations</h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white border border-gray-200">
+                    <thead>
+                      <tr>
+                        {variationTypes.map((type, index) => (
+                          <th key={index} className="px-4 py-2 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {type.name}
+                          </th>
+                        ))}
+                        <th className="px-4 py-2 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Price
+                        </th>
+                        <th className="px-4 py-2 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Stock
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedVariations.map((variation, index) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          {variationTypes.map((type) => (
+                            <td key={type.name} className="px-4 py-2 border-b border-gray-200 text-sm">
+                              {variation.optionValues[type.name]}
+                            </td>
+                          ))}
+                          <td className="px-4 py-2 border-b border-gray-200 text-sm">
+                            <input
+                              type="number"
+                              value={variation.price}
+                              onChange={(e) => updateVariation(index, 'price', e.target.value)}
+                              className="w-full p-1 border border-gray-300 rounded"
+                              step="0.01"
+                              min="0"
+                            />
+                          </td>
+                          <td className="px-4 py-2 border-b border-gray-200 text-sm">
+                            <input
+                              type="number"
+                              value={variation.stock}
+                              onChange={(e) => updateVariation(index, 'stock', e.target.value)}
+                              className="w-full p-1 border border-gray-300 rounded"
+                              min="0"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Display full category path for selected subcategory */}
+        {formData.category && categories.length > 0 && (
+          <CategoryPathDisplay 
+            categoryId={formData.category} 
+            categories={categories} 
+          />
+        )}
 
         {/* Enhanced Fixed Action Bar */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg py-4 px-6 z-10 backdrop-blur-sm bg-white/95">

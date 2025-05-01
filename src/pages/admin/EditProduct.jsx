@@ -39,6 +39,88 @@ const EditProduct = () => {
     status: 'active',
   });
 
+  // Add this function to render category options hierarchically
+  const renderCategoryOptions = (allCategories, parentId = null, level = 0) => {
+    // Create a Set to keep track of ancestors to prevent circular references
+    const ancestorIds = new Set();
+    
+    // Helper function for recursive rendering with circular reference check
+    const renderOptions = (parentId = null, level = 0, visitedIds = new Set()) => {
+      return allCategories
+        .filter(category => {
+          if (!category._id) return false; // Skip invalid categories
+          
+          // Skip if we've already visited this category (prevents circular references)
+          if (visitedIds.has(category._id)) return false;
+          
+          if (parentId === null) {
+            // Root categories have no parent
+            return !category.parentCategory;
+          } else {
+            // For child categories, ensure proper string comparison of IDs
+            const catParentId = typeof category.parentCategory === 'object' && category.parentCategory?._id 
+              ? category.parentCategory._id.toString() 
+              : category.parentCategory ? category.parentCategory.toString() : null;
+            
+            const compareParentId = parentId ? parentId.toString() : null;
+            return catParentId === compareParentId;
+          }
+        })
+        .map(category => {
+          // Convert category ID to string for consistent comparison
+          const categoryId = category._id ? category._id.toString() : null;
+          
+          // Find parent category name for display if it's a subcategory
+          const parentCategory = level > 0 && category.parentCategory ? 
+            allCategories.find(p => p._id === category.parentCategory || 
+              (typeof p._id === 'object' && p._id?._id === category.parentCategory)) : null;
+          
+          const parentName = parentCategory?.name;
+          
+          // Build clear hierarchy visual with indentation and symbols
+          const indent = level > 0 ? '\u00A0\u00A0'.repeat(level) : '';
+          const prefix = level > 0 ? `${indent}↳ ` : '';
+          
+          // Create a new Set with the current path to avoid circular references
+          const newVisitedIds = new Set(visitedIds);
+          newVisitedIds.add(categoryId);
+          
+          // Find if this category has direct children (ignoring circular references)
+          const hasChildren = allCategories.some(cat => {
+            const childParentId = typeof cat.parentCategory === 'object' && cat.parentCategory?._id
+              ? cat.parentCategory._id.toString()
+              : cat.parentCategory ? cat.parentCategory.toString() : null;
+            
+            return childParentId === categoryId && 
+                  cat._id !== categoryId &&  // Not itself
+                  !visitedIds.has(cat._id);  // Not already visited
+          });
+          
+          // Format category label with clear parent information
+          let categoryLabel = prefix + category.name;
+          
+          // For subcategories, add parent information
+          if (level > 0) {
+            categoryLabel += ` (${parentName ? `child of ${parentName}` : 'subcategory'})`;
+          } else if (hasChildren) {
+            // For parent categories, indicate they have children
+            categoryLabel += ' (parent)';
+          }
+          
+          return [
+            <option key={categoryId} value={categoryId} data-level={level} data-has-children={hasChildren}>
+              {categoryLabel}
+            </option>,
+            // If this category has children, render them with increased level
+            ...(hasChildren ? renderOptions(categoryId, level + 1, newVisitedIds) : [])
+          ];
+        })
+        .flat();
+    };
+    
+    return renderOptions(parentId, level);
+  };
+
   useEffect(() => {
     if (!id) return;
     
@@ -60,12 +142,17 @@ const EditProduct = () => {
         
         const productData = await response.json();
         
+        // Ensure category is properly handled (could be object or string ID)
+        const categoryId = productData.category && typeof productData.category === 'object' && productData.category._id
+          ? productData.category._id
+          : productData.category;
+        
         // Map the data to the form structure
         setFormData({
           name: productData.name || '',
           description: productData.description || '',
           price: productData.price || 0,
-          category: productData.category || '',
+          category: categoryId || '',
           stock: productData.stock || 0,
           minOrder: productData.minOrder || 1,
           targetMarketKeyFeatures: productData.targetMarketKeyFeatures || [],
@@ -108,8 +195,29 @@ const EditProduct = () => {
           throw new Error('Failed to fetch categories');
         }
         const data = await response.json();
-        setCategories(data);
+        
+        // Normalize categories to ensure consistent ID format and parent-child relationships
+        const normalizedCategories = data.map(category => {
+          // Create a clean category object with consistent ID handling
+          return {
+            ...category,
+            // Ensure _id is available as string for consistent comparison
+            _id: category._id ? category._id.toString() : null,
+            // Normalize parentCategory - convert from object if needed
+            parentCategory: category.parentCategory 
+              ? (typeof category.parentCategory === 'object' && category.parentCategory._id 
+                  ? category.parentCategory._id.toString() 
+                  : category.parentCategory.toString())
+              : null
+          };
+        });
+        
+        setCategories(normalizedCategories);
+        
+        // Log to help debugging
+        console.log(`Loaded ${normalizedCategories.length} categories for product edit form`);
       } catch (error) {
+        console.error('Error fetching categories:', error);
         toast.error('Failed to load categories');
       }
     };
@@ -483,11 +591,7 @@ const EditProduct = () => {
                     required
                   >
                     <option value="" disabled>Select a category</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
+                    {renderCategoryOptions(categories)}
                   </select>
                 </div>
                 <div>

@@ -160,6 +160,7 @@ const Products = () => {
   const categoryScrollRef = useRef(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState(new Set(['all']));
 
   // Debounced search function
   const debouncedSearch = useCallback(
@@ -196,6 +197,85 @@ const Products = () => {
     return `Browse our ${categoryName.toLowerCase()} collection. FDA-approved Korean skincare solutions formulated with cutting-edge technology for professional results.`;
   };
 
+  // Helper function to check if a product belongs to a category or any of its subcategories
+  const isProductInCategoryTree = useCallback((product, categoryId) => {
+    // If no category is selected or it's "all", everything matches
+    if (categoryId === 'all') return true;
+
+    // Ensure we're working with strings for consistent comparison
+    const selectedCategoryId = categoryId.toString();
+    
+    // Convert product category to string for comparison
+    const productCategoryId = product.category 
+      ? (typeof product.category === 'object' && product.category._id 
+        ? product.category._id.toString() 
+        : product.category.toString())
+      : null;
+
+    // If product has no category, it can't match
+    if (!productCategoryId) return false;
+
+    // Direct match
+    if (productCategoryId === selectedCategoryId) return true;
+
+    // Now check if product's category is a child of the selected category
+    // Build a list of all subcategories of the selected category
+    const subcategories = [];
+    const findSubcategories = (parentId) => {
+      categories.forEach(cat => {
+        if (cat.id !== 'all') {
+          const catId = cat.id.toString();
+          const catParentId = cat.parentCategory 
+            ? cat.parentCategory.toString() 
+            : null;
+          
+          if (catParentId === parentId.toString()) {
+            subcategories.push(catId);
+            // Recursively find subcategories of this category
+            findSubcategories(catId);
+          }
+        }
+      });
+    };
+
+    // Start the recursive search from the selected category
+    findSubcategories(selectedCategoryId);
+
+    // Debug log to help with troubleshooting
+    console.log(`Category tree for ${selectedCategoryId}: `, subcategories);
+    
+    // Check if the product's category is in the subcategory list
+    return subcategories.includes(productCategoryId);
+  }, [categories]);
+
+  // Define findSubcategories function to get all subcategories of a parent category
+  const findSubcategories = useCallback((parentId) => {
+    const result = [];
+    
+    // Helper function to recursively find subcategories
+    const findChildren = (pid) => {
+      categories.forEach(cat => {
+        if (cat.id !== 'all') {
+          const catId = cat.id.toString();
+          const catParentId = cat.parentCategory 
+            ? cat.parentCategory.toString() 
+            : null;
+          
+          if (catParentId === pid.toString()) {
+            result.push(catId);
+            // Recursively find subcategories of this category
+            findChildren(catId);
+          }
+        }
+      });
+    };
+    
+    // Start the recursive search
+    findChildren(parentId);
+    
+    return result;
+  }, [categories]);
+
   // Function to get filtered products
   const getFilteredProducts = useCallback(() => {
     if (!products || products.length === 0) return [];
@@ -206,13 +286,13 @@ const Products = () => {
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Category filter
-      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+      // Category filter - using the new helper function for hierarchical filtering
+      const matchesCategory = isProductInCategoryTree(product, selectedCategory);
       
       // Return without price filter
       return matchesSearch && matchesCategory;
     });
-  }, [products, searchQuery, selectedCategory]);
+  }, [products, searchQuery, selectedCategory, isProductInCategoryTree]);
   
   // Function to sort filtered products
   const getSortedProducts = useCallback((filteredProducts) => {
@@ -265,46 +345,136 @@ const Products = () => {
   // Destructure the paginated data
   const { paginatedProducts, filteredTotal, totalPages } = getPaginatedProducts();
   
-  // Modify the effect for updating displayedProducts on filter changes
-  // Use useMemo to prevent unnecessary recalculation
-  const filteredAndSortedProducts = useMemo(() => {
-        const filteredProducts = getFilteredProducts();
-    return getSortedProducts(filteredProducts);
-  }, [getFilteredProducts, getSortedProducts]);
-
-  // Replace the existing useEffect with a more optimized one
-  useEffect(() => {
-    // Use our memoized products - Load more products initially to ensure we fill the screen
-    const initialProductCount = Math.min(pageSize * 2, filteredAndSortedProducts.length);
-    const initialProducts = filteredAndSortedProducts.slice(0, initialProductCount);
-    setDisplayedProducts(initialProducts);
-    setHasMore(initialProducts.length < filteredAndSortedProducts.length);
+  // Add function to enhance products with category info
+  const enhanceProductsWithCategoryNames = useCallback((products) => {
+    if (!products || !Array.isArray(products) || !categories || !categories.length) {
+      return products;
+    }
     
-    // Reset the page when filters change
-    setPage(1);
-    
-    // Check if we need to load more after a short delay
-    // This helps ensure the grid is filled after initial render
-    const timer = setTimeout(() => {
-      const productsSection = document.getElementById('products-section');
-      if (productsSection) {
-        const viewportHeight = window.innerHeight;
-        const sectionBottom = productsSection.getBoundingClientRect().bottom;
-        
-        // If the products section doesn't fill the viewport and we have more to load, load more
-        if (sectionBottom < viewportHeight && initialProducts.length < filteredAndSortedProducts.length) {
-          const nextPageProducts = filteredAndSortedProducts.slice(
-            0, 
-            Math.min(initialProductCount + pageSize, filteredAndSortedProducts.length)
-          );
-          setDisplayedProducts(nextPageProducts);
-          setPage(prevPage => prevPage + 1);
-        }
+    return products.map(product => {
+      // Don't modify if no category or already has proper category object
+      if (!product.category || (typeof product.category === 'object' && product.category.name)) {
+        return product;
       }
-    }, 500);
+      
+      // Get category ID
+      const categoryId = typeof product.category === 'object' && product.category._id 
+        ? product.category._id.toString()
+        : product.category.toString();
+      
+      // Find matching category
+      const matchingCategory = categories.find(cat => {
+        return cat.id === categoryId;
+      });
+      
+      if (matchingCategory) {
+        // Create enhanced copy
+        return {
+          ...product,
+          // Preserve original category but add the name
+          category: {
+            _id: categoryId,
+            name: matchingCategory.name,
+            // Include parent info if available
+            ...(matchingCategory.parentCategory ? { parentCategory: matchingCategory.parentCategory } : {})
+          }
+        };
+      }
+      
+      return product;
+    });
+  }, [categories]);
+
+  // Use the enhanced products in the computed properties
+  const filteredAndSortedProducts = useMemo(() => {
+    let result = [...products];
     
-    return () => clearTimeout(timer);
-  }, [filteredAndSortedProducts, pageSize]);
+    // First enhance with category names
+    result = enhanceProductsWithCategoryNames(result);
+    
+    // Then apply filtering
+    if (selectedCategory !== 'all') {
+      result = result.filter(product => {
+        // Direct match with selected category
+        if (typeof product.category === 'string' && product.category === selectedCategory) {
+          return true;
+        }
+        
+        // Object with id/._id match
+        if (typeof product.category === 'object') {
+          const productCategoryId = product.category._id || product.category.id;
+          return productCategoryId === selectedCategory;
+        }
+        
+        return false;
+      });
+      
+      // Include subcategories if any
+      const subcategoryIds = findSubcategories(selectedCategory);
+      if (subcategoryIds.length > 0) {
+        const productsInSubcategories = products.filter(product => {
+          // Skip products already in result
+          if (result.includes(product)) return false;
+          
+          // Match product category with any subcategory
+          if (typeof product.category === 'string') {
+            return subcategoryIds.includes(product.category);
+          }
+          
+          if (typeof product.category === 'object') {
+            const productCategoryId = product.category._id || product.category.id;
+            return subcategoryIds.includes(productCategoryId);
+          }
+          
+          return false;
+        });
+        
+        // Add products from subcategories
+        result = [...result, ...productsInSubcategories];
+      }
+    }
+    
+    // Filter by search query if provided
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(product => 
+        product.name.toLowerCase().includes(query) ||
+        (product.description && product.description.toLowerCase().includes(query))
+      );
+    }
+    
+    // Apply sorting - match the values used in getSortedProducts
+    switch (sortBy) {
+      case 'price_asc':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case 'price_desc':
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case 'name_asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name_desc':
+        result.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'newest':
+        result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      // case 'featured' or default - no sorting needed
+    }
+    
+    return result;
+  }, [products, selectedCategory, searchQuery, sortBy, enhanceProductsWithCategoryNames, findSubcategories]);
+
+  // Update displayedProducts when the computed list changes
+  useEffect(() => {
+    // Update displayed products based on filteredAndSortedProducts
+    // This keeps the first page of products visible
+    setDisplayedProducts(filteredAndSortedProducts.slice(0, pageSize * page));
+    
+    // Reset hasMore flag based on whether there are more products to show
+    setHasMore(filteredAndSortedProducts.length > pageSize * page);
+  }, [filteredAndSortedProducts, page, pageSize]);
 
   // Add dedicated effect for category change - to avoid full reloads
   useEffect(() => {
@@ -422,6 +592,33 @@ const Products = () => {
         const response = await api.get('/products');
         const fetchedProducts = response.data;
         
+        // Debug category data structure in products
+        if (fetchedProducts && fetchedProducts.length > 0) {
+          console.log('📊 Analyzing product category data structure...');
+          
+          // Sample a few products for debugging
+          const sampleProducts = fetchedProducts.slice(0, Math.min(5, fetchedProducts.length));
+          
+          sampleProducts.forEach((product, index) => {
+            console.log(`Product ${index + 1}: ${product.name}`);
+            console.log(`- Category type: ${typeof product.category}`);
+            
+            if (typeof product.category === 'object') {
+              console.log(`- Category content: ${JSON.stringify(product.category)}`);
+              console.log(`- Has name property: ${Boolean(product.category?.name)}`);
+              console.log(`- Has _id property: ${Boolean(product.category?._id)}`);
+            } else {
+              console.log(`- Category raw value: ${product.category}`);
+              
+              // Check if it's a MongoDB ObjectId pattern (24-character hex string)
+              const isObjectId = typeof product.category === 'string' && 
+                                product.category.match(/^[0-9a-fA-F]{24}$/);
+              console.log(`- Looks like MongoDB ID: ${Boolean(isObjectId)}`);
+            }
+            console.log('---');
+          });
+        }
+        
         // Set products
         setProducts(fetchedProducts);
       } catch (error) {
@@ -440,18 +637,58 @@ const Products = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        // Just fetch the flat list of categories - we'll build the hierarchy ourselves
         const response = await api.get('/categories');
         
         if (response.data && Array.isArray(response.data)) {
-          // Map backend categories to expected format, and keep 'All Products' as first option
+          // Normalize categories to ensure consistent ID format
+          const normalizedCategories = response.data.map(category => {
+            // Convert _id to string
+            const id = category._id ? category._id.toString() : null;
+            
+            // Handle parentCategory - convert to string ID if it exists
+            let parentId = null;
+            if (category.parentCategory) {
+              // Check if parentCategory is an object with _id or just an ID string
+              parentId = typeof category.parentCategory === 'object' && category.parentCategory._id ? 
+                category.parentCategory._id.toString() : 
+                category.parentCategory.toString();
+            }
+            
+            return {
+              id: id,
+              name: category.name,
+              description: category.description,
+              parentCategory: parentId,
+              // Add level information which is useful for UI display
+              level: category.level || 0
+            };
+          });
+          
+          // Add the "All Products" option
           const formattedCategories = [
             { id: 'all', name: 'All Products' },
-            ...response.data.map(category => ({
-              id: category,
-              name: category
-            }))
+            ...normalizedCategories
           ];
+          
+          console.log('Normalized categories:', formattedCategories);
+          
+          // Check which categories have parent relationships
+          formattedCategories.forEach(cat => {
+            if (cat.id !== 'all' && cat.parentCategory) {
+              const parentCat = formattedCategories.find(p => p.id === cat.parentCategory);
+              console.log(`Category "${cat.name}" has parent: ${parentCat ? parentCat.name : 'Unknown'}`);
+            }
+          });
+          
+          // Set categories in state for component use
           setCategories(formattedCategories);
+          
+          // Also store the normalized categories globally for ProductCard components
+          if (typeof window !== 'undefined') {
+            window.categoriesList = normalizedCategories;
+            console.log('Categories stored globally for efficient lookup');
+          }
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -459,7 +696,7 @@ const Products = () => {
     };
     
     fetchCategories();
-  }, []); // Remove dependency on location.key to prevent unnecessary refetching
+  }, []);
 
   // Check if we should show the verification banner
   useEffect(() => {
@@ -517,9 +754,6 @@ const Products = () => {
     addToRecentlyViewed(product);
   };
 
-  // Calculate products to display
-  const displayProducts = paginatedProducts;
-
   // Function to handle email verification
   const handleSendVerification = async (e) => {
     if (e) e.preventDefault();
@@ -573,11 +807,25 @@ const Products = () => {
     setCurrentPage(1);
   };
 
+  // Add helper function to get category name from ID
+  const getCategoryName = useCallback((categoryId) => {
+    if (!categoryId || categoryId === 'all') return 'All Products';
+    
+    const category = categories.find(cat => {
+      // Handle various ID formats
+      const catId = typeof cat.id === 'string' ? cat.id : String(cat.id);
+      const compareId = typeof categoryId === 'string' ? categoryId : String(categoryId);
+      return catId === compareId;
+    });
+    
+    return category?.name || 'Unknown Category';
+  }, [categories]);
+
   // Function to get active filters for the StickyFilterBar
   const getActiveFilters = () => {
     return {
       category: selectedCategory !== 'all' ? 
-        categories.find(c => c.id === selectedCategory)?.name || selectedCategory : 
+        getCategoryName(selectedCategory) : 
         undefined,
       search: searchQuery || undefined,
       sort: sortBy !== 'featured' ? sortBy : undefined
@@ -649,6 +897,194 @@ const Products = () => {
     }
   }, [filteredAndSortedProducts, hasMore, loading, pageSize, displayedProducts.length]);
 
+  // Add helper function to get category details including subcategory count
+  const getCategoryDetails = useCallback((categoryId) => {
+    if (categoryId === 'all') {
+      return { name: 'All Products', hasChildren: false };
+    }
+    
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return { name: 'Unknown', hasChildren: false };
+    
+    // Count subcategories (immediate children only)
+    const subcategories = categories.filter(cat => 
+      cat.id !== 'all' && 
+      cat.parentCategory && 
+      cat.parentCategory.toString() === category.id.toString()
+    );
+    
+    return {
+      name: category.name,
+      hasChildren: subcategories.length > 0,
+      subcategoryCount: subcategories.length
+    };
+  }, [categories]);
+
+  // Add toggleCategory function after other handler functions
+  const toggleCategory = useCallback((categoryId, e) => {
+    // Prevent the click from triggering the category selection
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setExpandedCategories(prev => {
+      // Create a new Set from the previous expanded categories
+      const newExpanded = new Set(prev);
+      
+      // Toggle the category - remove if present, add if not
+      if (newExpanded.has(categoryId)) {
+        newExpanded.delete(categoryId);
+      } else {
+        newExpanded.add(categoryId);
+      }
+      
+      return newExpanded;
+    });
+  }, []);
+
+  // Update the renderCategoryHierarchy function with improved design
+  const renderCategoryHierarchy = (allCategories, parentId = null, level = 0) => {
+    // Filter categories based on parent relationship
+    const filteredCategories = allCategories.filter(category => {
+      if (parentId === null) {
+        // Root level categories have no parent or parentCategory is null/undefined
+        return !category.parentCategory;
+      } else {
+        // Child categories have parentCategory matching the parentId
+        // Ensure string comparison for IDs
+        const catParentId = category.parentCategory ? category.parentCategory.toString() : null;
+        const compareParentId = parentId ? parentId.toString() : null;
+        return catParentId === compareParentId;
+      }
+    });
+    
+    if (filteredCategories.length === 0) return null;
+    
+    return filteredCategories.map((category) => {
+      // Check if this category has children by looking for any category with this as parent
+      // Ensure string comparison for IDs
+      const categoryId = category.id.toString();
+      const hasChildren = allCategories.some(cat => {
+        const catParentId = cat.parentCategory ? cat.parentCategory.toString() : null;
+        return catParentId === categoryId;
+      });
+      
+      // Check if this category is expanded
+      const isExpanded = expandedCategories.has(categoryId);
+      
+      // Count subcategories for this category (immediate children only)
+      const childrenCount = allCategories.filter(cat => {
+        const catParentId = cat.parentCategory ? cat.parentCategory.toString() : null;
+        return catParentId === categoryId;
+      }).length;
+      
+      return (
+        <div key={category.id} className="category-item mb-1.5">
+          {/* Category button - better styled for clarity */}
+          <div className={`w-full rounded-lg overflow-hidden transition-all duration-200 ${
+            selectedCategory === category.id
+              ? 'bg-[#363a94] text-white shadow-md ring-2 ring-[#363a94]/20'
+              : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm'
+          }`}>
+            {/* Separate the category selection from the expand/collapse control */}
+            <div className="flex items-center justify-between">
+              {/* Category label and selection area */}
+              <button
+                onClick={() => {
+                  setSelectedCategory(category.id);
+                  setCurrentPage(1);
+                  
+                  // Auto-expand the category when selected
+                  if (hasChildren && !isExpanded) {
+                    toggleCategory(categoryId);
+                  }
+                }}
+                className={`flex-grow text-left px-4 py-3 transition-colors ${
+                  level > 0 ? 'pl-6' : 'font-medium'
+                }`}
+              >
+                <span className="flex items-center">
+                  {level > 0 && (
+                    <span className="text-xs mr-2 opacity-70">
+                      {Array(level).fill('–').join('')}
+                    </span>
+                  )}
+                  <span>{category.name}</span>
+                  {level > 0 && (
+                    <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                      Sub
+                    </span>
+                  )}
+                  
+                  {/* Show count badge if it has children */}
+                  {hasChildren && (
+                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
+                      selectedCategory === category.id 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-[#363a94]/10 text-[#363a94]'
+                    }`}>
+                      {childrenCount}
+                    </span>
+                  )}
+                </span>
+              </button>
+              
+              {/* Expand/collapse control - more visible and easy to click */}
+              {hasChildren && (
+                <button
+                  onClick={(e) => toggleCategory(categoryId, e)}
+                  aria-label={isExpanded ? "Collapse category" : "Expand category"}
+                  className={`p-3 flex items-center justify-center transition-colors ${
+                    selectedCategory === category.id 
+                      ? 'hover:bg-white/10 text-white'
+                      : 'hover:bg-gray-100 text-gray-500'
+                  }`}
+                >
+                  <span className={`transform transition-transform duration-200 ${
+                    isExpanded ? 'rotate-180' : ''
+                  }`}>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="14" 
+                      height="14" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="feather feather-chevron-down"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Subcategories container with animation */}
+          {hasChildren && (
+            <motion.div
+              initial={false}
+              animate={{ 
+                height: isExpanded ? "auto" : 0,
+                opacity: isExpanded ? 1 : 0
+              }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden ml-3"
+            >
+              <div className={`pt-1 ${level > 0 ? 'border-l border-gray-200 pl-2 ml-1' : ''}`}>
+                {renderCategoryHierarchy(allCategories, category.id, level + 1)}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      );
+    });
+  };
+
   if (loading) return <ProductsPageSkeleton />;
   
   if (error) return (
@@ -684,7 +1120,7 @@ const Products = () => {
         
         {/* Structured Data */}
         <script type="application/ld+json">
-          {JSON.stringify(generateProductListSchema(displayProducts))}
+          {JSON.stringify(generateProductListSchema(displayedProducts))}
         </script>
         <script type="application/ld+json">
           {JSON.stringify(breadcrumbSchema)}
@@ -712,8 +1148,13 @@ const Products = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                 </svg>
               </li>
-              <li aria-current="page" className="font-medium text-[#363a94]">
-                {categories.find(cat => cat.id === selectedCategory)?.name || selectedCategory}
+              <li aria-current="page" className="font-medium flex items-center text-[#363a94]">
+                {getCategoryName(selectedCategory)}
+                {getCategoryDetails(selectedCategory).hasChildren && (
+                  <span className="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">
+                    +subcategories
+                  </span>
+                )}
               </li>
             </>
           )}
@@ -731,12 +1172,12 @@ const Products = () => {
           <div className="absolute inset-0 opacity-10">
             <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
               <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="url(#grid-pattern)" />
+              <defs>
+                <pattern id="grid-pattern" patternUnits="userSpaceOnUse" width="10" height="10">
+                  <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5" />
+                </pattern>
+              </defs>
             </svg>
-            <defs>
-              <pattern id="grid-pattern" patternUnits="userSpaceOnUse" width="10" height="10">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5" />
-              </pattern>
-            </defs>
           </div>
           <motion.div 
             className="absolute top-0 left-0 w-full h-full" 
@@ -759,7 +1200,7 @@ const Products = () => {
                 transition={{ delay: 0.1 }}
               >
                 <span className="inline-block mr-1.5 w-2 h-2 rounded-full bg-green-400"></span>
-                {selectedCategory !== 'all' ? `Browsing ${categories.find(cat => cat.id === selectedCategory)?.name || 'Products'}` : 'Premium Korean Skincare'}
+                {selectedCategory !== 'all' ? `Browsing ${getCategoryName(selectedCategory)}` : 'Premium Korean Skincare'}
               </motion.div>
               
               <motion.h1
@@ -769,7 +1210,7 @@ const Products = () => {
                 transition={{ delay: 0.2 }}
               >
                 {selectedCategory !== 'all' 
-                  ? `${categories.find(cat => cat.id === selectedCategory)?.name || 'Products'}`
+                  ? `${getCategoryName(selectedCategory)}`
                   : 'Our Products Collection'
                 }
               </motion.h1>
@@ -781,7 +1222,7 @@ const Products = () => {
                 transition={{ delay: 0.4 }}
               >
                 {selectedCategory !== 'all'
-                  ? `Browse our premium ${(categories.find(cat => cat.id === selectedCategory)?.name || 'products').toLowerCase()} collection designed for salon professionals and beauty enthusiasts.`
+                  ? `Browse our premium ${getCategoryName(selectedCategory).toLowerCase()} collection designed for salon professionals and beauty enthusiasts.`
                   : 'Discover our range of FDA-approved Korean cosmetic products formulated with cutting-edge technology for professional results.'
                 }
               </motion.p>
@@ -904,26 +1345,26 @@ const Products = () => {
                   )}
                 </div>
 
-                {/* Categories - Converted to vertical stack */}
+                {/* Categories - Converted to vertical stack with hierarchy */}
                 <div className="space-y-3">
                   <h3 className="text-md font-medium text-gray-800">Categories</h3>
                   <div className="max-h-80 overflow-y-auto pr-2 category-stack">
-                    {categories.map((category) => (
-                      <button
-                        key={category.id}
-                        onClick={() => {
-                          setSelectedCategory(category.id);
-                          setCurrentPage(1);
-                        }}
-                        className={`w-full mb-3 px-4 py-3 rounded-lg transition-all text-sm font-medium flex items-center ${
-                          selectedCategory === category.id
-                            ? 'bg-[#363a94] text-white shadow-md'
-                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                        }`}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => {
+                        setSelectedCategory('all');
+                        setCurrentPage(1);
+                      }}
+                      className={`w-full mb-3 px-4 py-3 rounded-lg transition-all text-sm font-medium flex items-center ${
+                        selectedCategory === 'all'
+                          ? 'bg-[#363a94] text-white shadow-md'
+                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                      }`}
+                    >
+                      All Categories
+                    </button>
+                    
+                    {/* Debug the actual data structure */}
+                    {renderCategoryHierarchy(categories.filter(cat => cat.id !== 'all'))}
                   </div>
                 </div>
                 
@@ -1083,7 +1524,14 @@ const Products = () => {
                   
                   {selectedCategory !== 'all' && (
                           <div className="flex items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-sm">
-                      <span>Category: {categories.find(cat => cat.id === selectedCategory)?.name}</span>
+                      <span>
+                        Category: {getCategoryName(selectedCategory)}
+                        {getCategoryDetails(selectedCategory).hasChildren && (
+                          <span className="ml-1 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">
+                            +subcategories
+                          </span>
+                        )}
+                      </span>
                       <button 
                         onClick={() => setSelectedCategory('all')}
                         className="ml-1.5 text-purple-500 hover:text-purple-700 hover:bg-purple-100 p-1 rounded-full transition-colors"
@@ -1166,7 +1614,14 @@ const Products = () => {
                 <span className="w-24 h-4 bg-gray-200 animate-pulse rounded"></span>
               </span>
             ) : (
-              `Showing ${displayedProducts.length} of ${getFilteredProducts().length} products`
+              <>
+                Showing {displayedProducts.length} of {getFilteredProducts().length} products
+                {selectedCategory !== 'all' && getCategoryDetails(selectedCategory).hasChildren && (
+                  <span className="ml-1 text-xs font-medium text-indigo-600">
+                    (includes subcategories)
+                  </span>
+                )}
+              </>
             )}
           </p>
           

@@ -11,7 +11,6 @@ import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import axios from 'axios';
 import { Helmet } from 'react-helmet-async';
-import ProductDetailSkeleton from '../components/common/ProductDetailSkeleton';
 
 // Generate structured data for product
 const generateProductSchema = (product) => {
@@ -579,13 +578,16 @@ const ProductDetail = () => {
   // Loading state
   if (loading) {
     return (
-      <>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center mt-24" >
         <Helmet>
           <title>Loading Product... | Beauty Lab Cosmetic Products</title>
           <meta name="robots" content="noindex" />
         </Helmet>
-        <ProductDetailSkeleton />
-      </>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-[#363a94] rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading product details...</p>
+        </div>
+      </div>
     );
   }
 
@@ -1459,138 +1461,124 @@ const ProductDetail = () => {
         <div className="mt-12 sm:mt-16 space-y-12 sm:space-y-16">
           {/* People Also Bought */}
           {recommendedProducts.peopleBought.length > 0 && (
-            <section aria-labelledby="related-heading">
+            <section aria-labelledby="related-heading" className="relative">
               <div className="flex items-center justify-between mb-6 sm:mb-8">
                 <h2 id="related-heading" className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
                   <span className="hidden sm:block w-8 h-1 bg-[#363a94] rounded-full mr-3"></span>
                   <span className="block sm:hidden w-4 h-1 bg-[#363a94] rounded-full mr-2"></span>
                   Frequently Bought Together
                 </h2>
-                <Link to="/products" className="text-sm font-medium text-[#363a94] hover:text-[#5a60c0] hover:underline flex items-center">
+                <Link to="/products" className="text-sm font-medium text-[#363a94] hover:text-[#5a60c0] transition-colors flex items-center group">
                   View all 
-                  <svg className="ml-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="ml-1 w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-x-6 sm:gap-y-10">
-                {recommendedProducts.peopleBought.map((prod) => (
-                  <motion.div
-                    key={prod._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    whileHover={{ y: -5, transition: { duration: 0.3 } }}
-                    className="group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
-                    itemScope
-                    itemType="https://schema.org/Product"
-                    itemProp="isRelatedTo"
-                  >
-                    <div className="aspect-square overflow-hidden bg-gray-100">
-                      <img
-                        src={prod.image}
-                        alt={`${prod.name} - related product`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        itemProp="image"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://via.placeholder.com/300x300?text=Product';
-                        }}
+              {/* Desktop grid */}
+              <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                {recommendedProducts.peopleBought.map((prod, index) => (
+                  <RelatedProductCard 
+                    key={prod._id} 
+                    product={prod} 
+                    index={index} 
+                    isVerified={user?.emailVerified} 
+                    relation="frequently-bought"
+                    addToCart={addToCart}
+                    toggleWishlist={toggleWishlist}
+                    isInWishlist={isInWishlist}
+                  />
+                ))}
+              </div>
+
+              {/* Mobile carousel */}
+              <div className="sm:hidden -mx-4 px-4 relative overflow-hidden">
+                <div className="flex overflow-x-auto pb-4 gap-4 snap-x scrollbar-hide">
+                  {recommendedProducts.peopleBought.map((prod, index) => (
+                    <div 
+                      key={prod._id} 
+                      className="flex-none w-[calc(65%-1rem)] snap-start first:pl-4 last:pr-4"
+                    >
+                      <RelatedProductCard 
+                        product={prod} 
+                        index={index} 
+                        isVerified={user?.emailVerified} 
+                        relation="frequently-bought"
+                        addToCart={addToCart}
+                        toggleWishlist={toggleWishlist}
+                        isInWishlist={isInWishlist}
+                        isMobile={true}
                       />
                     </div>
-                    <div className="p-3 sm:p-4">
-                      <h3 className="text-sm sm:text-lg font-medium text-gray-900 line-clamp-2 min-h-[2.5rem] sm:min-h-[3.5rem]">
-                        <Link to={`/products/${prod._id}`} aria-label={`View details for ${prod.name}`}>
-                          <span className="absolute inset-0" aria-hidden="true" />
-                          <span itemProp="name">{prod.name}</span>
-                        </Link>
-                      </h3>
-                      <div className="mt-2">
-                        {user ? (
-                          <p className="text-[#363a94] font-semibold bg-[#363a94]/5 inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm" itemProp="offers" itemScope itemType="https://schema.org/Offer">
-                            <meta itemProp="priceCurrency" content="PHP" />
-                            <span itemProp="price" content={prod.price}>₱{prod.price.toLocaleString()}</span>
-                          </p>
-                        ) : (
-                          <p className="mt-1 text-gray-500 text-xs sm:text-sm italic">
-                            Login for wholesale pricing
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                  ))}
+                </div>
+                
+                {/* Fade gradients for carousel */}
+                <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
               </div>
             </section>
           )}
 
           {/* You Might Like */}
           {recommendedProducts.mightLike.length > 0 && (
-            <section aria-labelledby="suggestions-heading">
+            <section aria-labelledby="suggestions-heading" className="relative">
               <div className="flex items-center justify-between mb-6 sm:mb-8">
                 <h2 id="suggestions-heading" className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
                   <span className="hidden sm:block w-8 h-1 bg-[#363a94] rounded-full mr-3"></span>
                   <span className="block sm:hidden w-4 h-1 bg-[#363a94] rounded-full mr-2"></span>
                   You Might Also Like
                 </h2>
-                <Link to="/products" className="text-sm font-medium text-[#363a94] hover:text-[#5a60c0] hover:underline flex items-center">
+                <Link to="/products" className="text-sm font-medium text-[#363a94] hover:text-[#5a60c0] transition-colors flex items-center group">
                   View all 
-                  <svg className="ml-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="ml-1 w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-x-6 sm:gap-y-10">
-                {recommendedProducts.mightLike.map((prod) => (
-                  <motion.div
-                    key={prod._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    whileHover={{ y: -5, transition: { duration: 0.3 } }}
-                    className="group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
-                    itemScope
-                    itemType="https://schema.org/Product"
-                    itemProp="isRelatedTo"
-                  >
-                    <div className="aspect-square overflow-hidden bg-gray-100">
-                      <img
-                        src={prod.image}
-                        alt={`${prod.name} - suggested product`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        itemProp="image"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://via.placeholder.com/300x300?text=Product';
-                        }}
+              {/* Desktop grid */}
+              <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                {recommendedProducts.mightLike.map((prod, index) => (
+                  <RelatedProductCard 
+                    key={prod._id} 
+                    product={prod} 
+                    index={index} 
+                    isVerified={user?.emailVerified} 
+                    relation="recommended"
+                    addToCart={addToCart}
+                    toggleWishlist={toggleWishlist}
+                    isInWishlist={isInWishlist}
+                  />
+                ))}
+              </div>
+
+              {/* Mobile carousel */}
+              <div className="sm:hidden -mx-4 px-4 relative overflow-hidden">
+                <div className="flex overflow-x-auto pb-4 gap-4 snap-x scrollbar-hide">
+                  {recommendedProducts.mightLike.map((prod, index) => (
+                    <div 
+                      key={prod._id} 
+                      className="flex-none w-[calc(65%-1rem)] snap-start first:pl-4 last:pr-4"
+                    >
+                      <RelatedProductCard 
+                        product={prod} 
+                        index={index} 
+                        isVerified={user?.emailVerified} 
+                        relation="recommended"
+                        addToCart={addToCart}
+                        toggleWishlist={toggleWishlist}
+                        isInWishlist={isInWishlist}
+                        isMobile={true}
                       />
                     </div>
-                    <div className="p-3 sm:p-4">
-                      <h3 className="text-sm sm:text-lg font-medium text-gray-900 line-clamp-2 min-h-[2.5rem] sm:min-h-[3.5rem]">
-                        <Link to={`/products/${prod._id}`} aria-label={`View details for ${prod.name}`}>
-                          <span className="absolute inset-0" aria-hidden="true" />
-                          <span itemProp="name">{prod.name}</span>
-                        </Link>
-                      </h3>
-                      <div className="mt-2">
-                        {user ? (
-                          <p className="text-[#363a94] font-semibold bg-[#363a94]/5 inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm" itemProp="offers" itemScope itemType="https://schema.org/Offer">
-                            <meta itemProp="priceCurrency" content="PHP" />
-                            <span itemProp="price" content={prod.price}>₱{prod.price.toLocaleString()}</span>
-                          </p>
-                        ) : (
-                          <p className="mt-1 text-gray-500 text-xs sm:text-sm italic">
-                            Login for wholesale pricing
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                  ))}
+                </div>
+                
+                {/* Fade gradients for carousel */}
+                <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
               </div>
             </section>
           )}
@@ -1684,6 +1672,302 @@ const ExpandableDescription = ({ description }) => {
         }
       `}</style>
     </div>
+  );
+};
+
+// New component for related product cards with enhanced functionality
+const RelatedProductCard = ({ product, index, isVerified, relation, addToCart, toggleWishlist, isInWishlist, isMobile = false }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [isInUserWishlist, setIsInUserWishlist] = useState(false);
+  const [showQuickButtons, setShowQuickButtons] = useState(false);
+  const [inCart, setInCart] = useState(false);
+  const { cartItems, removeFromCart } = useCart();
+  const navigate = useNavigate();
+  
+  // Check if product is in cart
+  useEffect(() => {
+    if (product && cartItems) {
+      const exists = cartItems.some(item => {
+        const cartItemId = item.product?._id?.toString() || item.product?.toString();
+        const productId = product._id?.toString();
+        return cartItemId === productId;
+      });
+      setInCart(exists);
+    }
+  }, [product, cartItems]);
+  
+  useEffect(() => {
+    if (product) {
+      setIsInUserWishlist(isInWishlist(product._id));
+    }
+  }, [product, isInWishlist]);
+  
+  // Determine if this is a new product (within the last 30 days)
+  const isNewProduct = () => {
+    if (!product.createdAt) return false;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return new Date(product.createdAt) > thirtyDaysAgo;
+  };
+  
+  // Quick add to cart
+  const handleQuickAdd = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isAdding) return;
+    
+    setIsAdding(true);
+    try {
+      const cartItem = {
+        productId: product._id,
+        quantity: 1,
+        name: product.name,
+        price: product.price,
+        image: product.image || '/placeholder.jpg'
+      };
+      
+      await addToCart(cartItem);
+      toast.success(`${product.name} added to cart!`);
+      setInCart(true);
+    } catch (err) {
+      toast.error(err.message || 'Failed to add to cart');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+  
+  // Quick remove from cart
+  const handleQuickRemove = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isRemoving) return;
+    
+    setIsRemoving(true);
+    try {
+      await removeFromCart(product._id);
+      toast.success(`${product.name} removed from cart`);
+      setInCart(false);
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove from cart');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+  
+  // Quick add to wishlist
+  const handleQuickWishlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (product) {
+      toggleWishlist(product._id);
+      setIsInUserWishlist(!isInUserWishlist);
+      if (!isInUserWishlist) {
+        toast.success('Added to wishlist!');
+      } else {
+        toast.success('Removed from wishlist');
+      }
+    }
+  };
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      whileHover={{ y: -5, transition: { duration: 0.3 } }}
+      className={`group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 ${isMobile ? '' : 'h-full flex flex-col'}`}
+      itemScope
+      itemType="https://schema.org/Product"
+      itemProp="isRelatedTo"
+      onMouseEnter={() => setShowQuickButtons(true)}
+      onMouseLeave={() => setShowQuickButtons(false)}
+    >
+      {/* Badge for "new" products */}
+      {isNewProduct() && (
+        <div className="absolute top-2 left-2 z-10">
+          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+            NEW
+          </span>
+        </div>
+      )}
+      
+      {/* Badge for relation type */}
+      <div className="absolute top-2 right-2 z-10">
+        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium 
+          ${relation === 'frequently-bought' 
+            ? 'bg-blue-100 text-blue-800' 
+            : 'bg-purple-100 text-purple-800'}`}>
+          {relation === 'frequently-bought' ? 'Popular' : 'Recommended'}
+        </span>
+      </div>
+      
+      {/* "In Cart" indicator */}
+      {inCart && (
+        <div className="absolute top-0 inset-x-0 flex justify-center">
+          <div className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-b-md shadow-sm">
+            In Cart
+          </div>
+        </div>
+      )}
+      
+      {/* Product Image with link */}
+      <Link 
+        to={`/products/${product._id}`} 
+        className="block aspect-square overflow-hidden bg-gray-100 relative"
+        aria-label={`View details for ${product.name}`}
+      >
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          itemProp="image"
+          loading="lazy"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = 'https://placehold.co/300x300?text=Product';
+          }}
+        />
+        
+        {/* Quick action buttons that appear on hover */}
+        {!isMobile && (
+          <div 
+            className={`absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 p-2 bg-white/90 backdrop-blur-sm transition-all duration-300 
+              ${showQuickButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'}`}
+          >
+            {inCart ? (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleQuickRemove}
+                disabled={isRemoving}
+                className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md 
+                  transition-colors duration-200 flex items-center justify-center"
+              >
+                {isRemoving ? (
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <>Remove from Cart</>
+                )}
+              </motion.button>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleQuickAdd}
+                disabled={isAdding}
+                className="flex-1 px-2 py-1.5 bg-[#363a94] hover:bg-[#2a2e75] text-white text-xs font-medium rounded-md 
+                  transition-colors duration-200 flex items-center justify-center"
+              >
+                {isAdding ? (
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <>Quick Add</>
+                )}
+              </motion.button>
+            )}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleQuickWishlist}
+              aria-label={isInUserWishlist ? "Remove from wishlist" : "Add to wishlist"}
+              className={`p-1.5 rounded-md transition-colors duration-200 ${
+                isInUserWishlist 
+                  ? 'bg-red-100 text-red-600' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <FaHeart size={16} />
+            </motion.button>
+          </div>
+        )}
+      </Link>
+      
+      {/* Product details */}
+      <div className="p-3 sm:p-4 flex-1 flex flex-col">
+        <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1 flex-1">
+          <Link to={`/products/${product._id}`} aria-label={`View details for ${product.name}`}>
+            <span itemProp="name">{product.name}</span>
+          </Link>
+        </h3>
+        
+        {/* Category if available */}
+        {product.category && (
+          <div className="text-xs text-gray-500 mb-2">
+            {product.category}
+          </div>
+        )}
+        
+        {/* Price section */}
+        <div className="mt-auto">
+          {isVerified ? (
+            <p className="text-[#363a94] font-semibold bg-[#363a94]/5 inline-block px-2 py-1 rounded-full text-sm" itemProp="offers" itemScope itemType="https://schema.org/Offer">
+              <meta itemProp="priceCurrency" content="PHP" />
+              <span itemProp="price" content={product.price}>₱{product.price.toLocaleString()}</span>
+            </p>
+          ) : (
+            <p className="text-gray-500 text-xs italic">
+              Login for wholesale pricing
+            </p>
+          )}
+        </div>
+        
+        {/* Mobile quick-add button */}
+        {isMobile && (
+          inCart ? (
+            <button
+              onClick={handleQuickRemove}
+              disabled={isRemoving}
+              className="mt-2 w-full px-2 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md 
+                transition-colors duration-200 flex items-center justify-center"
+            >
+              {isRemoving ? (
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <>Remove from Cart</>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleQuickAdd}
+              disabled={isAdding}
+              className="mt-2 w-full px-2 py-1.5 bg-[#363a94] hover:bg-[#2a2e75] text-white text-xs font-medium rounded-md 
+                transition-colors duration-200 flex items-center justify-center"
+            >
+              {isAdding ? (
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <>Add to Cart</>
+              )}
+            </button>
+          )
+        )}
+      </div>
+      
+      {/* Add a stock indicator - if product has stock field */}
+      {product.stock !== undefined && (
+        <div className={`absolute top-0 left-0 w-full h-1 ${
+          product.stock > 10 
+            ? 'bg-green-500' 
+            : product.stock > 0 
+              ? 'bg-yellow-500' 
+              : 'bg-red-500'
+        }`}></div>
+      )}
+    </motion.div>
   );
 };
 
