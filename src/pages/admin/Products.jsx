@@ -59,28 +59,60 @@ const AdminProducts = () => {
   const [sortField, setSortField] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
 
+  // Add state for managing the active dropdown
+  const [activeCategoryDropdown, setActiveCategoryDropdown] = useState(null);
+
+  // Function to get category name by ID
+  const getCategoryNameById = (categoryId) => {
+    if (!categoryId) return 'Uncategorized';
+    
+    const category = categories.find(cat => 
+      cat._id === categoryId || 
+      cat._id?.toString() === categoryId?.toString()
+    );
+    
+    if (!category) return 'Unknown';
+    
+    // If it's a subcategory, show parent > child format
+    if (category.parentCategory) {
+      const parentCategory = categories.find(cat => 
+        cat._id === category.parentCategory || 
+        cat._id?.toString() === category.parentCategory?.toString()
+      );
+      
+      if (parentCategory) {
+        return `${parentCategory.name} › ${category.name}`;
+      }
+    }
+    
+    return category.name;
+  };
+
+  // Function to toggle dropdown visibility
+  const toggleCategoryDropdown = (productId) => {
+    if (activeCategoryDropdown === productId) {
+      setActiveCategoryDropdown(null);
+    } else {
+      setActiveCategoryDropdown(productId);
+    }
+  };
+
+  // Add click outside handler to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.category-dropdown-container')) {
+        setActiveCategoryDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Add this function to render category options hierarchically
   const renderCategoryOptions = (allCategories, parentId = null, level = 0) => {
-    // Create a Set to keep track of ancestors to prevent circular references
-    const ancestorIds = new Set();
-    
-    // Helper function to check for circular references
-    const buildCategoryPath = (catId, idsVisited = new Set()) => {
-      if (!catId || idsVisited.has(catId)) {
-        // We found a circular reference or reached a root category
-        return idsVisited;
-      }
-      
-      idsVisited.add(catId);
-      const category = allCategories.find(cat => cat._id === catId);
-      
-      if (category && category.parentCategory) {
-        return buildCategoryPath(category.parentCategory, idsVisited);
-      }
-      
-      return idsVisited;
-    };
-    
     // Helper function for recursive rendering with circular reference check
     const renderOptions = (parentId = null, level = 0, visitedIds = new Set()) => {
       return allCategories
@@ -91,36 +123,65 @@ const AdminProducts = () => {
           if (visitedIds.has(category._id)) return false;
           
           if (parentId === null) {
+            // Root categories have no parent
             return !category.parentCategory;
           } else {
-            return category.parentCategory === parentId;
+            // For child categories, ensure proper string comparison of IDs
+            const catParentId = typeof category.parentCategory === 'object' && category.parentCategory?._id 
+              ? category.parentCategory._id.toString() 
+              : category.parentCategory ? category.parentCategory.toString() : null;
+            
+            const compareParentId = parentId ? parentId.toString() : null;
+            return catParentId === compareParentId;
           }
         })
         .map(category => {
-          // Find parent category name for display if it's a subcategory
-          const parentName = level > 0 && category.parentCategory ? 
-            allCategories.find(p => p._id === category.parentCategory)?.name : null;
+          // Convert category ID to string for consistent comparison
+          const categoryId = category._id ? category._id.toString() : null;
           
-          // Create better visual hierarchy with icons/symbols
-          const prefix = level > 0 ? '\u00A0\u00A0'.repeat(level) + '↳ ' : '';
+          // Find parent category name for display if it's a subcategory
+          const parentCategory = level > 0 && category.parentCategory ? 
+            allCategories.find(p => p._id === category.parentCategory || 
+              (typeof p._id === 'object' && p._id?._id === category.parentCategory)) : null;
+          
+          const parentName = parentCategory?.name;
+          
+          // Build clear hierarchy visual with indentation and symbols
+          const indent = level > 0 ? '\u00A0\u00A0'.repeat(level) : '';
+          const prefix = level > 0 ? `${indent}↳ ` : '';
           
           // Create a new Set with the current path to avoid circular references
           const newVisitedIds = new Set(visitedIds);
-          newVisitedIds.add(category._id);
+          newVisitedIds.add(categoryId);
           
           // Find if this category has direct children (ignoring circular references)
-          const hasChildren = allCategories.some(cat => 
-            cat.parentCategory === category._id && 
-            cat._id !== category._id &&  // Not itself
-            !visitedIds.has(cat._id)     // Not already visited
-          );
+          const hasChildren = allCategories.some(cat => {
+            const childParentId = typeof cat.parentCategory === 'object' && cat.parentCategory?._id
+              ? cat.parentCategory._id.toString()
+              : cat.parentCategory ? cat.parentCategory.toString() : null;
+            
+            return childParentId === categoryId && 
+                  cat._id !== categoryId &&  // Not itself
+                  !visitedIds.has(cat._id);  // Not already visited
+          });
+          
+          // Format category label with clear parent information
+          let categoryLabel = prefix + category.name;
+          
+          // For subcategories, add parent information
+          if (level > 0) {
+            categoryLabel += ` (${parentName ? `child of ${parentName}` : 'subcategory'})`;
+          } else if (hasChildren) {
+            // For parent categories, indicate they have children
+            categoryLabel += ' (parent)';
+          }
           
           return [
-            <option key={category._id} value={category._id}>
-              {prefix}{category.name}{level > 0 ? ` (${parentName ? `sub of ${parentName}` : 'subcategory'})` : ''}
+            <option key={categoryId} value={categoryId} data-level={level} data-has-children={hasChildren}>
+              {categoryLabel}
             </option>,
-            // Recursively render children with updated visitedIds to prevent circular references
-            ...(hasChildren ? renderOptions(category._id, level + 1, newVisitedIds) : [])
+            // If this category has children, render them with increased level
+            ...(hasChildren ? renderOptions(categoryId, level + 1, newVisitedIds) : [])
           ];
         })
         .flat();
@@ -702,6 +763,61 @@ const AdminProducts = () => {
     }
   };
 
+  // Fix the handleCategoryChange function to use the correct API endpoint (same as used in CreateProduct.jsx)
+  const handleCategoryChange = async (productId, newCategoryId) => {
+    try {
+      // Show loading toast
+      const loadingToast = toast.loading('Updating category...');
+      
+      const token = await user.getIdToken();
+      
+      // Find the category name from the categories list
+      let categoryName = '';
+      if (newCategoryId) {
+        const category = categories.find(cat => 
+          cat._id === newCategoryId || 
+          cat._id?.toString() === newCategoryId?.toString()
+        );
+        categoryName = category?.name || '';
+      }
+      
+      // Update product directly using the same endpoint used in other parts of the app
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/products/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          category: newCategoryId,
+          categoryName: categoryName
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to update category: ${errorData}`);
+      }
+      
+      // Update the product in local state
+      setProducts(products.map(product => 
+        product._id === productId 
+          ? { ...product, category: newCategoryId, categoryName: categoryName }
+          : product
+      ));
+      
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success('Category updated successfully');
+      
+      // Close dropdown
+      setActiveCategoryDropdown(null);
+    } catch (error) {
+      toast.error(error.message);
+      console.error('Error updating category:', error);
+    }
+  };
+
   if (!user || !adminChecked) return <div className="text-center text-gray-600">Loading...</div>;
   if (!isAdmin) {
     return (
@@ -1006,8 +1122,38 @@ const AdminProducts = () => {
                                 <div className="text-sm font-medium text-gray-900 truncate" title={product.name}>
                                   {product.name}
                                 </div>
-                                <div className="text-xs text-gray-500 truncate">
-                                  {product.category}
+                                <div className="relative flex flex-col text-xs text-gray-500 category-dropdown-container">
+                                  <div className="flex items-center">
+                                    <span className="truncate mr-2" title={getCategoryNameById(product.category)}>
+                                      {getCategoryNameById(product.category)}
+                                    </span>
+                                    <button 
+                                      onClick={() => toggleCategoryDropdown(product._id)}
+                                      className="p-1 text-gray-400 hover:text-indigo-500 transition-colors focus:outline-none" 
+                                      title="Change category"
+                                      aria-label="Change category"
+                                    >
+                                      <FaEdit size={12} />
+                                    </button>
+                                  </div>
+                                  {activeCategoryDropdown === product._id && (
+                                    <div className="absolute left-0 mt-6 w-72 z-50">
+                                      <div className="bg-white rounded-md shadow-lg border border-gray-200 p-3">
+                                        <h4 className="text-xs font-medium text-gray-700 mb-2 border-b pb-1">Change Category</h4>
+                                        <div className="relative">
+                                          <select 
+                                            value={product.category || ''} 
+                                            onChange={(e) => handleCategoryChange(product._id, e.target.value)}
+                                            className="w-full text-xs py-2 px-3 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-300"
+                                            style={{ maxHeight: '200px' }}
+                                          >
+                                            <option value="">-- Uncategorized --</option>
+                                            {renderCategoryOptions(categories)}
+                                          </select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
