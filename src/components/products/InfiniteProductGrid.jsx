@@ -46,9 +46,10 @@ const InfiniteProductGrid = ({
     
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
-        // Always load more products when the last element is visible
-        // Remove the scroll height check which was causing the issue
-        onLoadMore();
+        // Use a small timeout to avoid race conditions
+        setTimeout(() => {
+          onLoadMore();
+        }, 100);
         
         // Only show manual load button if there are many products (optional UX improvement)
         if (products.length > 20 && document.documentElement.scrollTop > 1000) {
@@ -59,7 +60,7 @@ const InfiniteProductGrid = ({
         setLoadBoundaryVisible(true);
       }
     }, { 
-      rootMargin: '500px', // Increase the root margin to load earlier
+      rootMargin: '300px', // Reduce the root margin to avoid triggering too early
       threshold: 0.1 // Lower threshold so it triggers more easily
     });
     
@@ -80,15 +81,24 @@ const InfiniteProductGrid = ({
     // Append it to the container
     const gridContainer = document.querySelector('.product-grid-container');
     if (gridContainer) {
+      // Remove existing sentinel if it exists to prevent duplicates
+      const existingSentinel = document.getElementById('product-grid-end-sentinel');
+      if (existingSentinel) {
+        existingSentinel.remove();
+      }
+      
       gridContainer.appendChild(sentinelElement);
       
       // Create an observer for this sentinel
       const endObserver = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasMore && !loading) {
-          onLoadMore();
+          // Use requestAnimationFrame to avoid blocking UI
+          requestAnimationFrame(() => {
+            onLoadMore();
+          });
         }
       }, { 
-        rootMargin: '200px', 
+        rootMargin: '100px', // Reduce margin to prevent premature loading
         threshold: 0 
       });
       
@@ -106,7 +116,12 @@ const InfiniteProductGrid = ({
   // If we don't have many products, force loading more on mount
   useEffect(() => {
     if (hasMore && !loading && products.length <= 12) {
-      onLoadMore();
+      // Use a small timeout to prevent immediate loading
+      const timer = setTimeout(() => {
+        onLoadMore();
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
   }, [hasMore, loading, onLoadMore, products.length]);
   
@@ -122,22 +137,35 @@ const InfiniteProductGrid = ({
         
         // If grid bottom is within viewport and we have more to load
         if (gridBottom < viewportHeight && hasMore && !loading) {
-          onLoadMore();
+          // Use a small timeout to avoid race conditions
+          setTimeout(() => {
+            onLoadMore();
+          }, 300);
         }
       }
     };
     
-    // Check on mount and after any resize
+    // Check on mount and after any resize, but with a debounce
+    let resizeTimer;
+    const debouncedCheck = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(checkViewportFill, 200);
+    };
+    
     checkViewportFill();
-    window.addEventListener('resize', checkViewportFill);
+    window.addEventListener('resize', debouncedCheck);
     
     return () => {
-      window.removeEventListener('resize', checkViewportFill);
+      clearTimeout(resizeTimer);
+      window.removeEventListener('resize', debouncedCheck);
     };
   }, [hasMore, loading, onLoadMore]);
   
   // Handle manual load more
-  const handleManualLoadMore = () => {
+  const handleManualLoadMore = (e) => {
+    // Prevent default to avoid any potential page refresh
+    if (e) e.preventDefault();
+    
     setIsManualLoadVisible(false);
     onLoadMore();
   };
@@ -256,7 +284,8 @@ const InfiniteProductGrid = ({
             </div>
           ) : (
             <motion.button
-              onClick={onLoadMore}
+              onClick={handleManualLoadMore}
+              type="button" // Explicitly set button type to prevent default form submission
               className="px-6 py-3 bg-white border border-gray-300 rounded-full shadow-sm text-gray-700 flex items-center hover:bg-gray-50 transition-colors"
               whileHover={{ y: -2, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
               whileTap={{ y: 0 }}

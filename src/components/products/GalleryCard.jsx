@@ -29,6 +29,11 @@ const GalleryCard = ({
   const formatCategory = (category) => {
     // Handle when category is an object
     if (category && typeof category === 'object') {
+      // If the object already has a custom toString method, we're fine
+      if (category.toString && category.toString !== Object.prototype.toString) {
+        return category.toString();
+      }
+      // Otherwise return the name property
       return category.name || 'Uncategorized';
     }
     // Handle when category is a string or undefined
@@ -158,7 +163,7 @@ const GalleryCard = ({
           {/* Product info at bottom */}
           <div className="text-white">
             <h3 className="font-semibold text-xl">{product.name}</h3>
-            <p className="text-xs text-gray-500 mb-1">
+            <p className="text-xs text-white mb-1 opacity-80">
               {formatCategory(product.category)}
             </p>
             

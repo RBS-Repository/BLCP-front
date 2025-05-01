@@ -853,10 +853,18 @@ const Products = () => {
 
   // Function to get active filters for the StickyFilterBar
   const getActiveFilters = () => {
+    // Get category name safely
+    const categoryName = selectedCategory !== 'all' 
+      ? getCategoryName(selectedCategory)
+      : undefined;
+      
+    // Ensure we're returning a string, not an object
     return {
-      category: selectedCategory !== 'all' ? 
-        getCategoryName(selectedCategory) : 
-        undefined,
+      category: categoryName && typeof categoryName === 'string' 
+        ? categoryName 
+        : typeof categoryName === 'object' && categoryName.name
+          ? categoryName.name
+          : undefined,
       search: searchQuery || undefined,
       sort: sortBy !== 'featured' ? sortBy : undefined
     };
@@ -902,6 +910,7 @@ const Products = () => {
   // Update the loadMoreProducts function to use the memoized data
   const loadMoreProducts = useCallback(() => {
     if (!loading && hasMore) {
+      // Set loading state first to prevent multiple calls
       setLoading(true);
       
       // Calculate how many products to show in the next batch
@@ -915,15 +924,19 @@ const Products = () => {
       // Get the next batch of products
       const nextPageProducts = filteredAndSortedProducts.slice(0, nextDisplayCount);
       
-      // Use a shorter timeout
-      setTimeout(() => {
+      // Use requestAnimationFrame for smoother updates
+      requestAnimationFrame(() => {
         setDisplayedProducts(nextPageProducts);
         setPage(prevPage => prevPage + 1);
         
         // Check if we've reached the end
         setHasMore(nextDisplayCount < totalAvailable);
-        setLoading(false);
-      }, 300);
+        
+        // Delay setting loading to false to allow UI to update first
+        setTimeout(() => {
+          setLoading(false);
+        }, 300);
+      });
     }
   }, [filteredAndSortedProducts, hasMore, loading, pageSize, displayedProducts.length]);
 
@@ -1512,7 +1525,9 @@ const Products = () => {
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => {
+                          // Always toggle between list and standard only
                           const newLayout = gridLayout === 'list' ? 'standard' : 'list';
+                          console.log(`Changing grid layout from ${gridLayout} to ${newLayout}`);
                           setGridLayout(newLayout);
                           setStoredItem('viewMode', newLayout);
                         }}
