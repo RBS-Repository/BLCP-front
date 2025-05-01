@@ -1002,11 +1002,11 @@ const AdminProducts = () => {
                                   }}
                                 />
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
+                              <div className="max-w-[250px]"> 
+                                <div className="text-sm font-medium text-gray-900 truncate" title={product.name}>
                                   {product.name}
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-gray-500 truncate">
                                   {product.category}
                                 </div>
                               </div>
@@ -1034,21 +1034,25 @@ const AdminProducts = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium flex items-center">
-                              {product.stock <= 5 ? (
-                                <span className="text-red-600">{product.stock}</span>
+                              {product.stock <= 0 ? (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>
+                                  Out of Stock
+                                </span>
+                              ) : product.stock <= 5 ? (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>
+                                  {product.stock} - Critical
+                                </span>
                               ) : product.stock <= 10 ? (
-                                <span className="text-yellow-600">{product.stock}</span>
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1.5"></span>
+                                  {product.stock} - Low
+                                </span>
                               ) : (
-                                <span className="text-gray-700">{product.stock}</span>
-                              )}
-                              
-                              {product.stock <= 10 && (
-                                <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
-                                  product.stock <= 5 
-                                    ? 'bg-red-100 text-red-700 border border-red-200' 
-                                    : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                                }`}>
-                                  {product.stock <= 5 ? 'Critical' : 'Low Stock'}
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                                  {product.stock}
                                 </span>
                               )}
                             </div>

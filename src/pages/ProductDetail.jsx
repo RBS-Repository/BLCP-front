@@ -1772,6 +1772,32 @@ const RelatedProductCard = ({ product, index, isVerified, relation, addToCart, t
       }
     }
   };
+
+  // Function to determine stock level display
+  const getStockIndicator = () => {
+    if (!product.stock && product.stock !== 0) return null;
+    
+    if (product.stock <= 0) {
+      return (
+        <span className="absolute top-3 right-3 z-20 px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-200">
+          Out of Stock
+        </span>
+      );
+    } else if (product.stock <= 5) {
+      return (
+        <span className="absolute top-3 right-3 z-20 px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full border border-amber-200">
+          Low Stock: {product.stock}
+        </span>
+      );
+    } else if (product.stock <= 10) {
+      return (
+        <span className="absolute top-3 right-3 z-20 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full border border-yellow-200">
+          Stock: {product.stock}
+        </span>
+      );
+    } 
+    return null;
+  };
   
   return (
     <motion.div
@@ -1797,7 +1823,7 @@ const RelatedProductCard = ({ product, index, isVerified, relation, addToCart, t
       )}
       
       {/* Badge for relation type */}
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute top-2 left-2 z-10">
         <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium 
           ${relation === 'frequently-bought' 
             ? 'bg-blue-100 text-blue-800' 
@@ -1805,10 +1831,13 @@ const RelatedProductCard = ({ product, index, isVerified, relation, addToCart, t
           {relation === 'frequently-bought' ? 'Popular' : 'Recommended'}
         </span>
       </div>
+
+      {/* Display stock indicator */}
+      {getStockIndicator()}
       
       {/* "In Cart" indicator */}
       {inCart && (
-        <div className="absolute top-0 inset-x-0 flex justify-center">
+        <div className="absolute top-0 inset-x-0 flex justify-center z-10">
           <div className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-b-md shadow-sm">
             In Cart
           </div>
@@ -1892,15 +1921,15 @@ const RelatedProductCard = ({ product, index, isVerified, relation, addToCart, t
       
       {/* Product details */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col">
-        <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1 flex-1">
+        <h3 className="text-sm font-medium text-gray-900 mb-1 flex-1 line-clamp-2 overflow-hidden text-ellipsis">
           <Link to={`/products/${product._id}`} aria-label={`View details for ${product.name}`}>
-            <span itemProp="name">{product.name}</span>
+            <span itemProp="name" title={product.name}>{product.name}</span>
           </Link>
         </h3>
         
         {/* Category if available */}
         {product.category && (
-          <div className="text-xs text-gray-500 mb-2">
+          <div className="text-xs text-gray-500 mb-2 truncate">
             {product.category}
           </div>
         )}
@@ -1956,17 +1985,6 @@ const RelatedProductCard = ({ product, index, isVerified, relation, addToCart, t
           )
         )}
       </div>
-      
-      {/* Add a stock indicator - if product has stock field */}
-      {product.stock !== undefined && (
-        <div className={`absolute top-0 left-0 w-full h-1 ${
-          product.stock > 10 
-            ? 'bg-green-500' 
-            : product.stock > 0 
-              ? 'bg-yellow-500' 
-              : 'bg-red-500'
-        }`}></div>
-      )}
     </motion.div>
   );
 };
