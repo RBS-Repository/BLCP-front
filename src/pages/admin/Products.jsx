@@ -1338,7 +1338,7 @@ const AdminProducts = () => {
                               <div className="h-12 w-12 flex-shrink-0 mr-4 bg-gray-100 rounded-md overflow-hidden border border-gray-200">
                                 <img
                                   className="h-full w-full object-cover"
-                                  src={product.image || 'https://via.placeholder.com/100'}
+                                  src={product.image || 'https://placehold.co/600x400'}
                                   alt={product.name}
                                   onError={(e) => {
                                     e.target.onerror = null;
