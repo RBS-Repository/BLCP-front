@@ -15,10 +15,10 @@
 ## System Overview
 
 BLCP is a full-stack e-commerce application built with:
-- Frontend: React, TailwindCSS
-- Backend: Express.js, Node.js
-- Database: MongoDB, Firebase Firestore
-- Authentication: Firebase Auth, JWT
+- **Frontend**: React, TailwindCSS
+- **Backend**: Express.js, Node.js
+- **Database**: MongoDB, Firebase Firestore
+- **Authentication**: Firebase Auth, JWT
 
 The system includes product management, user authentication, cart functionality, order processing, payment integration with PayMongo, and analytics.
 
@@ -57,33 +57,33 @@ The application implements several security measures:
 ### Setup Instructions
 
 1. Clone the repository:
-```bash
-git clone <repository-url>
-cd blcp
-```
+   ```bash
+   git clone <repository-url>
+   cd blcp
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-# or using pnpm
-pnpm install
-```
+   ```bash
+   npm install
+   # or using pnpm
+   pnpm install
+   ```
 
 3. Create environment variables:
    - Copy `.env.example` to `.env`
    - Fill in the required values
 
 4. Run the development server:
-```bash
-# Run frontend
-npm run dev
+   ```bash
+   # Run frontend
+   npm run dev
 
-# Run backend
-npm run dev:server
+   # Run backend
+   npm run dev:server
 
-# Run both concurrently
-npm run dev:all
-```
+   # Run both concurrently
+   npm run dev:all
+   ```
 
 ## Authentication System
 
@@ -137,10 +137,10 @@ router.get('/admin-endpoint', auth, adminOnly, (req, res) => {
 - **Admin Users**: Can manage products, view analytics, manage users
 
 ### User Operations
-- Registration: Users can create accounts with email/password
-- Authentication: Login using Firebase Auth
-- Profile Management: Users can update their profile information
-- Account Status: Admins can activate/deactivate user accounts
+- **Registration**: Users can create accounts with email/password
+- **Authentication**: Login using Firebase Auth
+- **Profile Management**: Users can update their profile information
+- **Account Status**: Admins can activate/deactivate user accounts
 
 ### Admin User Management
 
@@ -243,7 +243,7 @@ The application uses environment variables for configuration. Create a `.env` fi
 ### Required Variables
 
 #### Firebase Configuration
-```
+```plaintext
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
@@ -266,12 +266,12 @@ FIREBASE_CLIENT_X509_CERT_URL=your_cert_url
 ```
 
 #### MongoDB Configuration
-```
+```plaintext
 MONGO_URI=mongodb://localhost:27017/my-app
 ```
 
 #### PayMongo Configuration
-```
+```plaintext
 PAYMONGO_SECRET_KEY=your_paymongo_secret_key
 PAYMONGO_PUBLIC_KEY=your_paymongo_public_key
 PAYMONGO_WEBHOOK_SECRET=your_webhook_secret
@@ -279,12 +279,12 @@ WEBHOOK_URL=your_webhook_url
 ```
 
 #### Security Configuration
-```
+```plaintext
 JWT_SECRET=your_generated_jwt_secret
 ```
 
 #### Server Configuration
-```
+```plaintext
 PORT=5000
 NODE_ENV=production
 ```
@@ -299,9 +299,9 @@ NODE_ENV=production
    - Set NODE_ENV to 'production'
 
 2. Build the frontend:
-```bash
-npm run build
-```
+   ```bash
+   npm run build
+   ```
 
 3. Deploy backend:
    - Use a process manager like PM2 for Node.js services
@@ -373,5 +373,3 @@ This application is configured for deployment with Vercel:
 - Ensure frontend origin is in the allowed origins list
 - Check request headers match allowed headers
 - Verify CORS middleware is correctly configured
-#   B L C P - f r o n t  
- 
