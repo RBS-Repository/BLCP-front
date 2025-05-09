@@ -190,25 +190,44 @@ const ProductDetail = () => {
   useEffect(() => {
     if (product) {
       Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL}/products?price=${product.price}&limit=8`),
-        fetch(`${import.meta.env.VITE_API_BASE_URL}/products?category=${product.category}&limit=8`),
+        // Using different parameters to get diverse products instead of dedicated random endpoint
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/products?limit=8&sort=createdAt`),
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/products?limit=8&sort=-price`),
         fetch(`${import.meta.env.VITE_API_BASE_URL}/products?category=${product.category}&limit=8`),
       ])
         .then((res) => Promise.all(res.map((r) => r.json())))
         .then(([peopleBought, mightLike, sameBrand]) => {
-          // Fix filtering to match the field used in your backend
+          // Filter active products and exclude current product
           const filterActiveProducts = (products) => 
             products
               .filter(p => p._id !== product._id && (p.status === 'active' || p.active === true))
               .slice(0, 4);
               
+          // Shuffle arrays to increase randomness
+          const shuffleArray = (array) => {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+          };
+              
           setRecommendedProducts({
-            peopleBought: filterActiveProducts(peopleBought),
-            mightLike: filterActiveProducts(mightLike),
-            sameBrand: filterActiveProducts(sameBrand),
+            peopleBought: filterActiveProducts(shuffleArray(peopleBought || [])),
+            mightLike: filterActiveProducts(shuffleArray(mightLike || [])),
+            sameBrand: filterActiveProducts(sameBrand || []),
           });
         })
-        .catch((err) => console.error("Error fetching recommendations:", err));
+        .catch((err) => {
+          console.error("Error fetching recommendations:", err);
+          // Set empty arrays if fetch fails to avoid UI breaking
+          setRecommendedProducts({
+            peopleBought: [],
+            mightLike: [],
+            sameBrand: [],
+          });
+        });
     }
   }, [product]);
 
@@ -1466,7 +1485,7 @@ const ProductDetail = () => {
                 <h2 id="related-heading" className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
                   <span className="hidden sm:block w-8 h-1 bg-[#363a94] rounded-full mr-3"></span>
                   <span className="block sm:hidden w-4 h-1 bg-[#363a94] rounded-full mr-2"></span>
-                  Frequently Bought Together
+                  Products You Might Like
                 </h2>
                 <Link to="/products" className="text-sm font-medium text-[#363a94] hover:text-[#5a60c0] transition-colors flex items-center group">
                   View all 
@@ -1528,7 +1547,7 @@ const ProductDetail = () => {
                 <h2 id="suggestions-heading" className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
                   <span className="hidden sm:block w-8 h-1 bg-[#363a94] rounded-full mr-3"></span>
                   <span className="block sm:hidden w-4 h-1 bg-[#363a94] rounded-full mr-2"></span>
-                  You Might Also Like
+                  More To Explore
                 </h2>
                 <Link to="/products" className="text-sm font-medium text-[#363a94] hover:text-[#5a60c0] transition-colors flex items-center group">
                   View all 
@@ -1828,7 +1847,7 @@ const RelatedProductCard = ({ product, index, isVerified, relation, addToCart, t
           ${relation === 'frequently-bought' 
             ? 'bg-blue-100 text-blue-800' 
             : 'bg-purple-100 text-purple-800'}`}>
-          {relation === 'frequently-bought' ? 'Popular' : 'Recommended'}
+          {relation === 'frequently-bought' ? 'Random Pick' : 'Discover'}
         </span>
       </div>
 
