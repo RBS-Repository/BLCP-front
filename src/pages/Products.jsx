@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/Products.css';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaShoppingCart, FaStar, FaHeart, FaLock, FaEnvelope, FaList, FaThLarge, FaFilter, FaSearch, FaSortAmountDown, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaShoppingCart, FaStar, FaHeart, FaLock, FaEnvelope, FaList, FaThLarge, FaFilter, FaSearch, FaSortAmountDown, FaTimes, FaChevronLeft, FaChevronRight, FaGripHorizontal } from 'react-icons/fa';
 import { MdEmail, MdVerifiedUser } from 'react-icons/md';
 import api from '../api/client';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -153,7 +153,7 @@ const Products = () => {
   const [showQuickView, setShowQuickView] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const productListRef = useRef(null);
-  const [gridLayout, setGridLayout] = useState('standard');
+  const [gridLayout, setGridLayout] = useState('compact');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [displayedProducts, setDisplayedProducts] = useState([]);
@@ -582,7 +582,7 @@ const Products = () => {
     if (search) setSearchQuery(search);
     if (page && !isNaN(parseInt(page))) setCurrentPage(parseInt(page));
     if (sort) setSortBy(sort);
-    if (view && ['grid', 'list'].includes(view)) setGridLayout(view);
+    if (view && ['compact', 'standard', 'gallery', 'list'].includes(view)) setGridLayout(view);
     
     // If no URL parameters, try to get from localStorage
     if (!category && !search && !sort && !view) {
@@ -598,7 +598,7 @@ const Products = () => {
           setSortBy(storedFilters.sortBy || 'featured');
         }
         
-        const storedViewMode = getStoredItem('viewMode', 'standard');
+        const storedViewMode = getStoredItem('viewMode', 'compact');
         if (storedViewMode) {
           setGridLayout(storedViewMode);
         }
@@ -623,7 +623,7 @@ const Products = () => {
     if (searchQuery) params.set('search', searchQuery);
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (sortBy !== 'featured') params.set('sort', sortBy);
-    if (gridLayout !== 'standard') params.set('view', gridLayout);
+    if (gridLayout !== 'compact') params.set('view', gridLayout);
     
     // Update URL without causing a page reload
     const newUrl = `${location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
@@ -768,8 +768,8 @@ const Products = () => {
   
   // Toggle view mode
   const toggleViewMode = () => {
-    // Toggle between list and standard grid
-    const newLayout = gridLayout === 'list' ? 'standard' : 'list';
+    // Toggle between list and compact grid
+    const newLayout = gridLayout === 'list' ? 'compact' : 'list';
     setGridLayout(newLayout);
     setStoredItem('viewMode', newLayout); // For backward compatibility
   };
@@ -926,15 +926,15 @@ const Products = () => {
       setLastScrollPosition(window.scrollY);
       scrollRestoreRef.current = true;
     }
-    
-    // Calculate how many products to show in the next batch
+      
+      // Calculate how many products to show in the next batch
     const nextBatchSize = pageSize;
-    const currentDisplayCount = displayedProducts.length;
-    const totalAvailable = filteredAndSortedProducts.length;
-    
-    // Calculate next batch (ensuring we don't exceed array bounds)
-    const nextDisplayCount = Math.min(currentDisplayCount + nextBatchSize, totalAvailable);
-    
+      const currentDisplayCount = displayedProducts.length;
+      const totalAvailable = filteredAndSortedProducts.length;
+      
+      // Calculate next batch (ensuring we don't exceed array bounds)
+      const nextDisplayCount = Math.min(currentDisplayCount + nextBatchSize, totalAvailable);
+      
     // Store the number of new items for animation purposes
     const newItems = nextDisplayCount - currentDisplayCount;
     setNewItemsCount(newItems);
@@ -959,7 +959,7 @@ const Products = () => {
         setTimeout(() => {
           setLoadingMore(false);
           setPreloading(false);
-        }, 300);
+      }, 300);
       }, 100);
     });
   }, [filteredAndSortedProducts, hasMore, loadingMore, preloading, pageSize, displayedProducts.length, page]);
@@ -1237,7 +1237,7 @@ const Products = () => {
         return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3';
     }
   };
-  
+
   if (loading) return <ProductsPageSkeleton />;
   
   if (error) return (
@@ -1577,7 +1577,7 @@ const Products = () => {
             {/* Product Filters for Mobile View */}
             <div id="product-filters" className="md:hidden mb-8">
               <motion.div 
-                className="filter-panel backdrop-blur-sm bg-white/90 border border-gray-200 rounded-2xl shadow-lg overflow-hidden"
+                className=""
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
@@ -1635,8 +1635,8 @@ const Products = () => {
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => {
-                          // Always toggle between list and standard only
-                          const newLayout = gridLayout === 'list' ? 'standard' : 'list';
+                          // Toggle between list and compact mode
+                          const newLayout = gridLayout === 'list' ? 'compact' : 'list';
                           setGridLayout(newLayout);
                           setStoredItem('viewMode', newLayout);
                         }}
@@ -1645,8 +1645,8 @@ const Products = () => {
                       >
                         {gridLayout === 'list' ? (
                           <>
-                            <FaThLarge size={14} />
-                            <span className="text-sm font-medium">Grid</span>
+                            <FaGripHorizontal size={14} />
+                            <span className="text-sm font-medium">Grid (4×)</span>
                           </>
                         ) : (
                           <>
@@ -1654,7 +1654,7 @@ const Products = () => {
                             <span className="text-sm font-medium">List</span>
                           </>
                         )}
-                      </motion.button>
+                </motion.button>
               
                       {/* Sort Dropdown with improved styling */}
                       <div className="flex-1 relative filter-control sort-control">
@@ -1862,7 +1862,7 @@ const Products = () => {
                               viewMode={gridLayout === 'list' ? 'list' : 'grid'} 
                               onQuickView={() => setQuickViewProduct(product)}
                               addToRecentlyViewed={() => addToRecentlyViewedHandler(product)}
-                              gridLayout={gridLayout}
+                    gridLayout={gridLayout}
                             />
                           )}
                         </div>
@@ -1877,9 +1877,9 @@ const Products = () => {
                         <div className="w-12 h-12 rounded-full border-4 border-t-transparent border-[#363a94] animate-spin mb-3"></div>
                         <p className="text-sm text-gray-600">{loadingMore ? 'Loading more products...' : 'Preparing next batch...'}</p>
                       </div>
-                    </div>
-                  )}
-                  
+                </div>
+              )}
+
                   {/* "Load more" button when reached end */}
                   {!loading && !loadingMore && !preloading && !hasMore && displayedProducts.length >= 12 && (
                     <div className="flex justify-center mt-8 mb-4">
@@ -1928,8 +1928,8 @@ const Products = () => {
                 <div className="py-8 flex justify-center">
                   <BeatLoader color="#363a94" size={12} />
                 </div>
-              )}
-            </motion.div>
+        )}
+      </motion.div>
           </div>
         </div>
       </div>
