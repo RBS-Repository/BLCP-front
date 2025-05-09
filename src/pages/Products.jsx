@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/Products.css';
 import { Link } from 'react-router-dom';
@@ -30,7 +30,7 @@ import { BeatLoader } from 'react-spinners';
 import { BsFacebook } from 'react-icons/bs';
 import { FaInstagram } from 'react-icons/fa';
 import { FaTiktok } from 'react-icons/fa';
-import { debounce } from 'lodash';
+import { debounce as lodashDebounce } from 'lodash';
 
 const sortOptions = [
   { id: 'featured', name: 'Featured' },
@@ -121,6 +121,10 @@ const ProductsPageSkeleton = () => {
   );
 };
 
+// Create memoized ProductCard component for optimized re-renders
+const MemoizedProductCard = memo(ProductCard);
+const MemoizedGalleryCard = memo(GalleryCard);
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -161,10 +165,21 @@ const Products = () => {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState(new Set(['all']));
+  
+  // Add these new state variables for enhanced infinite scroll
+  const [loadingMore, setLoadingMore] = useState(false); // Separate loading state for more products
+  const [preloading, setPreloading] = useState(false); // State for preloading next batch
+  const [animateNewItems, setAnimateNewItems] = useState(false); // Controls animation of new items
+  const [lastScrollPosition, setLastScrollPosition] = useState(0); // Tracks scroll position
+  const [newItemsCount, setNewItemsCount] = useState(0); // Keeps track of newly added items
+  const scrollRestoreRef = useRef(); // Ref to restore scroll position
+  const viewportMarginRef = useRef(1000); // Ref for preload threshold
+  const preloadTimeoutRef = useRef(null); // Ref for preload timeout
+  const scrollRestoreTimeoutRef = useRef(null); // Ref for scroll restore timeout
 
   // Debounced search function
   const debouncedSearch = useCallback(
-    debounce((value) => {
+    lodashDebounce((value) => {
       setSearchQuery(value);
       setCurrentPage(1);
     }, 400), // 400ms debounce delay
@@ -240,9 +255,6 @@ const Products = () => {
 
     // Start the recursive search from the selected category
     findSubcategories(selectedCategoryId);
-
-    // Debug log to help with troubleshooting
-    console.log(`Category tree for ${selectedCategoryId}: `, subcategories);
     
     // Check if the product's category is in the subcategory list
     return subcategories.includes(productCategoryId);
@@ -636,33 +648,6 @@ const Products = () => {
         const response = await api.get('/products');
         const fetchedProducts = response.data;
         
-        // Debug category data structure in products
-        if (fetchedProducts && fetchedProducts.length > 0) {
-          console.log('📊 Analyzing product category data structure...');
-          
-          // Sample a few products for debugging
-          const sampleProducts = fetchedProducts.slice(0, Math.min(5, fetchedProducts.length));
-          
-          sampleProducts.forEach((product, index) => {
-            console.log(`Product ${index + 1}: ${product.name}`);
-            console.log(`- Category type: ${typeof product.category}`);
-            
-            if (typeof product.category === 'object') {
-              console.log(`- Category content: ${JSON.stringify(product.category)}`);
-              console.log(`- Has name property: ${Boolean(product.category?.name)}`);
-              console.log(`- Has _id property: ${Boolean(product.category?._id)}`);
-            } else {
-              console.log(`- Category raw value: ${product.category}`);
-              
-              // Check if it's a MongoDB ObjectId pattern (24-character hex string)
-              const isObjectId = typeof product.category === 'string' && 
-                                product.category.match(/^[0-9a-fA-F]{24}$/);
-              console.log(`- Looks like MongoDB ID: ${Boolean(isObjectId)}`);
-            }
-            console.log('---');
-          });
-        }
-        
         // Set products
         setProducts(fetchedProducts);
       } catch (error) {
@@ -715,13 +700,10 @@ const Products = () => {
             ...normalizedCategories
           ];
           
-          console.log('Normalized categories:', formattedCategories);
-          
           // Check which categories have parent relationships
           formattedCategories.forEach(cat => {
             if (cat.id !== 'all' && cat.parentCategory) {
               const parentCat = formattedCategories.find(p => p.id === cat.parentCategory);
-              console.log(`Category "${cat.name}" has parent: ${parentCat ? parentCat.name : 'Unknown'}`);
             }
           });
           
@@ -731,7 +713,6 @@ const Products = () => {
           // Also store the normalized categories globally for ProductCard components
           if (typeof window !== 'undefined') {
             window.categoriesList = normalizedCategories;
-            console.log('Categories stored globally for efficient lookup');
           }
         }
       } catch (error) {
@@ -907,38 +888,124 @@ const Products = () => {
     categoryScrollRef.current.scrollBy({ left: 200, behavior: 'smooth' });
   };
 
-  // Update the loadMoreProducts function to use the memoized data
-  const loadMoreProducts = useCallback(() => {
-    if (!loading && hasMore) {
-      // Set loading state first to prevent multiple calls
-      setLoading(true);
+  // Fix circular dependency in checkForPreload
+  const checkForPreload = useCallback((loadMoreProductsFn) => {
+    if (preloading || loadingMore || !hasMore) return;
+    
+    const scrollPosition = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // Start preloading when user is within viewportMarginRef.current pixels of the bottom
+    if (documentHeight - (scrollPosition + windowHeight) < viewportMarginRef.current) {
+      setPreloading(true);
       
-      // Calculate how many products to show in the next batch
-      const nextBatchSize = pageSize; // Use full page size for each load
-      const currentDisplayCount = displayedProducts.length;
-      const totalAvailable = filteredAndSortedProducts.length;
+      // Clear any existing timeout
+      if (preloadTimeoutRef.current) {
+        clearTimeout(preloadTimeoutRef.current);
+      }
       
-      // Calculate next batch (ensuring we don't exceed array bounds)
-      const nextDisplayCount = Math.min(currentDisplayCount + nextBatchSize, totalAvailable);
-      
+      // Set a small delay before actually loading to prevent too many calls
+      preloadTimeoutRef.current = setTimeout(() => {
+        loadMoreProductsFn(true); // true flag indicates preloading
+        preloadTimeoutRef.current = null;
+      }, 200);
+    }
+  }, [preloading, loadingMore, hasMore]);
+
+  // Update the loadMoreProducts function with optimizations
+  const loadMoreProducts = useCallback((isPreloading = false) => {
+    if ((isPreloading ? preloading : loadingMore) || !hasMore) return;
+    
+    // Set the appropriate loading state based on whether we're preloading
+    if (isPreloading) {
+      setPreloading(true);
+    } else {
+      setLoadingMore(true);
+      // Save current scroll position to restore later
+      setLastScrollPosition(window.scrollY);
+      scrollRestoreRef.current = true;
+    }
+    
+    // Calculate how many products to show in the next batch
+    const nextBatchSize = pageSize;
+    const currentDisplayCount = displayedProducts.length;
+    const totalAvailable = filteredAndSortedProducts.length;
+    
+    // Calculate next batch (ensuring we don't exceed array bounds)
+    const nextDisplayCount = Math.min(currentDisplayCount + nextBatchSize, totalAvailable);
+    
+    // Store the number of new items for animation purposes
+    const newItems = nextDisplayCount - currentDisplayCount;
+    setNewItemsCount(newItems);
+    
+    // Use requestAnimationFrame for smoother updates
+    requestAnimationFrame(() => {
       // Get the next batch of products
       const nextPageProducts = filteredAndSortedProducts.slice(0, nextDisplayCount);
       
-      // Use requestAnimationFrame for smoother updates
-      requestAnimationFrame(() => {
+      // Add a small delay for better UX and to prevent browser lock-up
+      setTimeout(() => {
         setDisplayedProducts(nextPageProducts);
         setPage(prevPage => prevPage + 1);
         
         // Check if we've reached the end
         setHasMore(nextDisplayCount < totalAvailable);
         
-        // Delay setting loading to false to allow UI to update first
+        // Flag to trigger animations on newly added items
+        setAnimateNewItems(true);
+        
+        // Reset loading states after a small delay
         setTimeout(() => {
-          setLoading(false);
+          setLoadingMore(false);
+          setPreloading(false);
         }, 300);
+      }, 100);
+    });
+  }, [filteredAndSortedProducts, hasMore, loadingMore, preloading, pageSize, displayedProducts.length, page]);
+
+  // Add scroll event listener for preloading - update to pass loadMoreProducts function
+  useEffect(() => {
+    // Create a function that will use the latest loadMoreProducts
+    const checkPreload = () => checkForPreload(loadMoreProducts);
+    
+    // Debounced version for better performance
+    const debouncedCheckForPreload = lodashDebounce(checkPreload, 100);
+    
+    window.addEventListener('scroll', debouncedCheckForPreload);
+    return () => {
+      window.removeEventListener('scroll', debouncedCheckForPreload);
+      // Clean up timeouts
+      if (preloadTimeoutRef.current) clearTimeout(preloadTimeoutRef.current);
+      if (scrollRestoreTimeoutRef.current) clearTimeout(scrollRestoreTimeoutRef.current);
+    };
+  }, [checkForPreload, loadMoreProducts]);
+
+  // Add effect to restore scroll position after new items are added
+  useEffect(() => {
+    if (scrollRestoreRef.current && lastScrollPosition > 0) {
+      // Use requestAnimationFrame to ensure DOM is updated before changing scroll
+      requestAnimationFrame(() => {
+        window.scrollTo(0, lastScrollPosition);
+        
+        // Reset scroll position after a delay
+        scrollRestoreTimeoutRef.current = setTimeout(() => {
+          setLastScrollPosition(0);
+          scrollRestoreRef.current = false;
+        }, 100);
       });
     }
-  }, [filteredAndSortedProducts, hasMore, loading, pageSize, displayedProducts.length]);
+  }, [displayedProducts.length, lastScrollPosition]);
+  
+  // Add effect to animate newly loaded items
+  useEffect(() => {
+    if (animateNewItems) {
+      // Wait for DOM update before triggering animation
+      requestAnimationFrame(() => {
+        setAnimateNewItems(false);
+      });
+    }
+  }, [animateNewItems]);
 
   // Add helper function to get category details including subcategory count
   const getCategoryDetails = useCallback((categoryId) => {
@@ -1128,6 +1195,49 @@ const Products = () => {
     });
   };
 
+  // Map displayed products to include category as name instead of ID
+  const productsWithCategoryNames = useMemo(() => {
+    const idPattern = /^[0-9a-fA-F]{24}$/;
+    return displayedProducts.map(product => {
+      let categoryName = 'Uncategorized';
+      // If product has a category object with a name property, use it
+      if (product.category && typeof product.category === 'object' && product.category.name) {
+        categoryName = product.category.name;
+      }
+      // Else if product.category is a string not matching a MongoDB ID, it's already a name
+      else if (typeof product.category === 'string' && !idPattern.test(product.category)) {
+        categoryName = product.category;
+      }
+      // Else lookup in the categories array
+      else if (typeof product.category === 'string') {
+        const cat = categories.find(c => c.id === product.category || c.id === product.category.toString());
+        if (cat) {
+          categoryName = cat.name;
+        }
+      }
+      return {
+        ...product,
+        // Override category so the product card displays the name
+        category: categoryName
+      };
+    });
+  }, [displayedProducts, categories]);
+
+  // Helper function to determine grid classes - adding this back
+  const getGridClasses = (gridLayout) => {
+    switch (gridLayout) {
+      case 'compact':
+        return 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
+      case 'gallery':
+        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+      case 'list':
+        return 'grid-cols-1';
+      case 'standard':
+      default:
+        return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3';
+    }
+  };
+  
   if (loading) return <ProductsPageSkeleton />;
   
   if (error) return (
@@ -1527,7 +1637,6 @@ const Products = () => {
                         onClick={() => {
                           // Always toggle between list and standard only
                           const newLayout = gridLayout === 'list' ? 'standard' : 'list';
-                          console.log(`Changing grid layout from ${gridLayout} to ${newLayout}`);
                           setGridLayout(newLayout);
                           setStoredItem('viewMode', newLayout);
                         }}
@@ -1669,7 +1778,7 @@ const Products = () => {
         </motion.div>
       )}
 
-      {/* Products Grid */}
+      {/* Products Grid - Enhanced with transitions and loading states */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1724,30 +1833,103 @@ const Products = () => {
                 </div>
               )}
 
-              {/* Products grid - Ensure this div doesn't have any height constraints */}
+              {/* Products grid - Enhanced with transitions */}
               {displayedProducts.length > 0 && (
                 <div className="min-h-[500px]"> {/* Add minimum height to ensure grid has room to expand */}
-                  <InfiniteProductGrid
-                    products={displayedProducts}
-                    gridLayout={gridLayout}
-                    loading={loading}
-                    hasMore={hasMore}
-                    onLoadMore={loadMoreProducts}
-                    onQuickView={setQuickViewProduct}
-                    isLoggedIn={!!user}
-                    isEmailVerified={isEmailVerified}
-                    loadingSkeletonCount={4} // Reduce skeleton count
-                  />
+                  <div className={`grid ${getGridClasses(gridLayout)} gap-6 md:gap-8 infinite-product-grid`}>
+                    {productsWithCategoryNames.map((product, index) => {
+                      // Determine if this product is newly added
+                      const isNewlyAdded = index >= productsWithCategoryNames.length - newItemsCount;
+                      
+                      return (
+                        <div 
+                          key={`product-${product._id}-${index}`} 
+                          className={`flex justify-center transition-all duration-500 ${
+                            isNewlyAdded && animateNewItems
+                              ? 'opacity-0 translate-y-8'
+                              : 'opacity-100 translate-y-0'
+                          }`}
+                        >
+                          {gridLayout === 'gallery' ? (
+                            <MemoizedGalleryCard
+                              product={product}
+                              onQuickView={() => setQuickViewProduct(product)}
+                              addToRecentlyViewed={() => addToRecentlyViewedHandler(product)}
+                            />
+                          ) : (
+                            <MemoizedProductCard
+                              product={product}
+                              viewMode={gridLayout === 'list' ? 'list' : 'grid'} 
+                              onQuickView={() => setQuickViewProduct(product)}
+                              addToRecentlyViewed={() => addToRecentlyViewedHandler(product)}
+                              gridLayout={gridLayout}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Improved loading indicator at bottom of product grid */}
+                  {(loadingMore || preloading) && (
+                    <div className="flex justify-center py-8 opacity-80">
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-full border-4 border-t-transparent border-[#363a94] animate-spin mb-3"></div>
+                        <p className="text-sm text-gray-600">{loadingMore ? 'Loading more products...' : 'Preparing next batch...'}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* "Load more" button when reached end */}
+                  {!loading && !loadingMore && !preloading && !hasMore && displayedProducts.length >= 12 && (
+                    <div className="flex justify-center mt-8 mb-4">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg py-3 px-5 text-center">
+                        <p className="text-gray-600 text-sm">You've reached the end of the products.</p>
+                        {selectedCategory !== 'all' && (
+                          <button
+                            onClick={() => setSelectedCategory('all')}
+                            className="mt-2 text-sm font-medium text-[#363a94] hover:underline"
+                          >
+                            View all products
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Invisible preload trigger - shows up 1000px before the bottom */}
+                  {hasMore && !loading && !loadingMore && !preloading && (
+                    <div 
+                      className="invisible h-1" 
+                      ref={(el) => {
+                        if (el) {
+                          const observer = new IntersectionObserver(
+                            (entries) => {
+                              if (entries[0].isIntersecting) {
+                                loadMoreProducts();
+                              }
+                            },
+                            { rootMargin: '1000px 0px' }
+                          );
+                          observer.observe(el);
+                          
+                          return () => {
+                            if (el) observer.unobserve(el);
+                          };
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               )}
 
-              {/* Loading indicator */}
-              {loading && (
+              {/* Initial loading indicator */}
+              {loading && !loadingMore && (
                 <div className="py-8 flex justify-center">
                   <BeatLoader color="#363a94" size={12} />
                 </div>
-        )}
-      </motion.div>
+              )}
+            </motion.div>
           </div>
         </div>
       </div>
@@ -1828,31 +2010,29 @@ const Products = () => {
         }}
       />
 
-      {/* Add custom scrollbar styling */}
+      {/* Add custom scrollbar styling and transitions for infinite grid */}
       <style jsx="true">{`
-        /* Custom scrollbar for category stack */
-        .category-stack::-webkit-scrollbar {
-          width: 4px;
+        /* Existing styles */
+        
+        /* Animation styles for newly loaded products */
+        .infinite-product-grid > div {
+          transition: opacity 0.4s ease-out, transform 0.5s ease-out;
         }
         
-        .category-stack::-webkit-scrollbar-track {
-          background: #f3f4f7;
-          border-radius: 10px;
+        /* Better loading indicators */
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         
-        .category-stack::-webkit-scrollbar-thumb {
-          background: #363a94;
-          border-radius: 10px;
-        }
-        
-        .category-stack::-webkit-scrollbar-thumb:hover {
-          background: #2a2d73;
-        }
-        
-        /* For Firefox */
-        .category-stack {
-          scrollbar-width: thin;
-          scrollbar-color: #363a94 #f3f4f7;
+        .fade-in-up {
+          animation: fadeInUp 0.5s ease-out;
         }
       `}</style>
     </div>
