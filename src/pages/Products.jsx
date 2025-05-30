@@ -1152,12 +1152,14 @@ const Products = () => {
                   maxWidth: 'calc(100% - 40px)' /* Ensure space for dropdown arrow */
                 }}
               >
-                <span className="flex items-center w-full overflow-hidden">
-                  <span className="truncate">{category.name}</span>
+                <div className="flex flex-wrap items-center w-full">
+                  <div className="mr-1 break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                    {category.name}
+                  </div>
                   
                   {/* Show count badge if it has children */}
                   {hasChildren && (
-                    <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                    <span className={`mt-1 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                       selectedCategory === category.id 
                         ? 'bg-white/20 text-white' 
                         : 'bg-[#363a94]/10 text-[#363a94]'
@@ -1165,7 +1167,7 @@ const Products = () => {
                       {childrenCount}
                     </span>
                   )}
-                </span>
+                </div>
               </button>
               
               {/* Expand/collapse control - more visible and easy to click */}
@@ -1329,10 +1331,12 @@ const Products = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                 </svg>
               </li>
-              <li aria-current="page" className="font-medium flex items-center text-[#363a94] max-w-[200px]">
-                <span className="truncate">{getCategoryName(selectedCategory)}</span>
+              <li aria-current="page" className="font-medium flex items-center text-[#363a94] max-w-[300px]">
+                <span className="break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                  {getCategoryName(selectedCategory)}
+                </span>
                 {getCategoryDetails(selectedCategory).hasChildren && (
-                  <span className="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">
+                  <span className="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full flex-shrink-0">
                     +{getCategoryDetails(selectedCategory).subcategoryCount || ''}
                   </span>
                 )}
@@ -1798,17 +1802,19 @@ const Products = () => {
                   
                   {selectedCategory !== 'all' && (
                           <div className="flex items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-sm">
-                      <span>
-                        Category: {getCategoryName(selectedCategory)}
+                      <div className="flex flex-wrap items-center">
+                        <span className="break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                          Category: {getCategoryName(selectedCategory)}
+                        </span>
                         {getCategoryDetails(selectedCategory).hasChildren && (
-                          <span className="ml-1 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">
+                          <span className="ml-1 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
                             +{getCategoryDetails(selectedCategory).subcategoryCount || ''}
                           </span>
                         )}
-                      </span>
+                      </div>
                       <button 
                         onClick={() => setSelectedCategory('all')}
-                        className="ml-1.5 text-purple-500 hover:text-purple-700 hover:bg-purple-100 p-1 rounded-full transition-colors"
+                        className="ml-1.5 text-purple-500 hover:text-purple-700 hover:bg-purple-100 p-1 rounded-full transition-colors flex-shrink-0"
                         aria-label="Clear category filter"
                       >
                         <FaTimes size={10} />

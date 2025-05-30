@@ -90,7 +90,9 @@ const StickyFilterBar = ({
               {/* Display active category filter */}
               {activeFilters.category && (
                 <div className="flex items-center bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-xs">
-                  <span className="truncate max-w-[80px]">{activeFilters.category}</span>
+                  <span className="max-w-[120px] break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                    {activeFilters.category}
+                  </span>
                   <button 
                     onClick={() => onClearFilter('category')}
                     className="ml-1 text-purple-500 hover:text-purple-700 flex-shrink-0"
@@ -103,7 +105,9 @@ const StickyFilterBar = ({
               {/* Display active search filter */}
               {activeFilters.search && (
                 <div className="flex items-center bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs">
-                  <span className="truncate max-w-[80px]">{activeFilters.search}</span>
+                  <span className="max-w-[120px] break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                    {activeFilters.search}
+                  </span>
                   <button 
                     onClick={() => onClearFilter('search')}
                     className="ml-1 text-blue-500 hover:text-blue-700 flex-shrink-0"
@@ -116,7 +120,7 @@ const StickyFilterBar = ({
               {/* Display active sort filter */}
               {activeFilters.sort && (
                 <div className="flex items-center bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs">
-                  <span className="truncate max-w-[80px]">
+                  <span className="max-w-[120px] break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
                     {sortOptions.find(opt => opt.id === activeFilters.sort)?.name || activeFilters.sort}
                   </span>
                   <button 
