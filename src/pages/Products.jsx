@@ -1146,26 +1146,18 @@ const Products = () => {
                     toggleCategory(categoryId);
                   }
                 }}
-                className={`flex-grow text-left px-4 py-3 transition-colors ${
-                  level > 0 ? 'pl-6' : 'font-medium'
-                }`}
+                className="flex-grow text-left px-4 py-3 transition-colors"
+                style={{ 
+                  paddingLeft: level > 0 ? `${(level * 12) + 16}px` : '16px',
+                  maxWidth: 'calc(100% - 40px)' /* Ensure space for dropdown arrow */
+                }}
               >
-                <span className="flex items-center">
-                  {level > 0 && (
-                    <span className="text-xs mr-2 opacity-70">
-                      {Array(level).fill('–').join('')}
-                    </span>
-                  )}
-                  <span>{category.name}</span>
-                  {level > 0 && (
-                    <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
-                      •
-                    </span>
-                  )}
+                <span className="flex items-center w-full overflow-hidden">
+                  <span className="truncate">{category.name}</span>
                   
                   {/* Show count badge if it has children */}
                   {hasChildren && (
-                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
+                    <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                       selectedCategory === category.id 
                         ? 'bg-white/20 text-white' 
                         : 'bg-[#363a94]/10 text-[#363a94]'
@@ -1181,7 +1173,7 @@ const Products = () => {
                 <button
                   onClick={(e) => toggleCategory(categoryId, e)}
                   aria-label={isExpanded ? "Collapse category" : "Expand category"}
-                  className={`p-3 flex items-center justify-center transition-colors ${
+                  className={`p-3 flex items-center justify-center transition-colors flex-shrink-0 w-10 ${
                     selectedCategory === category.id 
                       ? 'hover:bg-white/10 text-white'
                       : 'hover:bg-gray-100 text-gray-500'
@@ -1337,8 +1329,8 @@ const Products = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                 </svg>
               </li>
-              <li aria-current="page" className="font-medium flex items-center text-[#363a94]">
-                {getCategoryName(selectedCategory)}
+              <li aria-current="page" className="font-medium flex items-center text-[#363a94] max-w-[200px]">
+                <span className="truncate">{getCategoryName(selectedCategory)}</span>
                 {getCategoryDetails(selectedCategory).hasChildren && (
                   <span className="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">
                     +{getCategoryDetails(selectedCategory).subcategoryCount || ''}

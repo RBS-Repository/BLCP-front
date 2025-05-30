@@ -158,23 +158,18 @@ const MobileFilterDrawer = ({
                     }, 100);
                   }, 300);
                 }}
-                className="flex-grow text-left px-4 py-3.5"
-                style={{ paddingLeft: level > 0 ? `${(level * 12) + 16}px` : '16px' }}
+                className="flex-grow text-left py-3.5 pr-2"
+                style={{ 
+                  paddingLeft: level > 0 ? `${(level * 8) + 16}px` : '16px',
+                  maxWidth: 'calc(100% - 48px)' /* Ensure space for dropdown arrow */
+                }}
               >
-                <div className="flex items-center">
-                  {/* Indentation for hierarchy */}
-                  {level > 0 && (
-                    <span className="text-xs mr-2 opacity-70 flex items-center">
-                      {Array(level).fill('').map((_, i) => (
-                        <span key={i} className="w-3 h-px bg-current opacity-50 mx-0.5"></span>
-                      ))}
-                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 mx-0.5"></span>
-                    </span>
-                  )}
-                  <span className={level === 0 ? 'font-medium' : ''}>{category.name}</span>
+                <div className="flex items-center w-full overflow-hidden">
+                  {/* Remove indentation indicators for hierarchy */}
+                  <span className={`truncate ${level === 0 ? 'font-medium' : ''}`}>{category.name}</span>
                   
                   {/* Product count badge */}
-                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
+                  <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                     selectedCategory === category.id 
                       ? 'bg-white/20 text-white' 
                       : 'bg-gray-100 text-gray-600'
@@ -184,7 +179,7 @@ const MobileFilterDrawer = ({
                   
                   {/* Subcategory indicator */}
                   {hasChildCategories && (
-                    <span className={`ml-1 text-xs px-1 py-0.5 rounded-full ${
+                    <span className={`ml-1 text-xs px-1 py-0.5 rounded-full flex-shrink-0 ${
                       selectedCategory === category.id 
                         ? 'bg-white/20 text-white' 
                         : 'bg-[#363a94]/10 text-[#363a94]'
@@ -199,7 +194,7 @@ const MobileFilterDrawer = ({
               {hasChildCategories && (
                 <button
                   onClick={() => toggleCategory(categoryId)}
-                  className={`p-4 ${
+                  className={`p-4 flex-shrink-0 w-12 ${
                     selectedCategory === category.id
                       ? 'text-white'
                       : 'text-gray-500'
@@ -375,8 +370,8 @@ const MobileFilterDrawer = ({
                       : 'bg-white border border-gray-200 text-gray-700'
                   }`}
                 >
-                  <span className="font-medium">All Categories</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  <span className="font-medium truncate">All Categories</span>
+                  <span className={`ml-1 text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                     selectedCategory === 'all' 
                       ? 'bg-white/20 text-white' 
                       : 'bg-gray-100 text-gray-600'
@@ -408,12 +403,12 @@ const MobileFilterDrawer = ({
                     
                     {selectedCategory !== 'all' && (
                       <div className="flex items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs">
-                        <span>
+                        <span className="truncate max-w-[120px]">
                           Category: {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
                         </span>
                         <button 
                           onClick={() => onSelectCategory('all')}
-                          className="ml-1.5 text-purple-500 hover:text-purple-700"
+                          className="ml-1.5 text-purple-500 hover:text-purple-700 flex-shrink-0"
                         >
                           <FaTimes size={10} />
                         </button>
