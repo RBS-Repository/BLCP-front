@@ -55,17 +55,17 @@ const OrderConfirmation = () => {
           setLoading(false);
           return;
         }
-
+        
         const token = await user.getIdToken();
         const response = await api.get(`/orders/${orderId}`, {
-          headers: {
+              headers: { 
             Authorization: `Bearer ${token}`
           }
         });
 
         if (response.data) {
           setOrder(response.data);
-        } else {
+          } else {
           setError('Order not found');
         }
       } catch (err) {
@@ -120,10 +120,10 @@ const OrderConfirmation = () => {
       {/* Temporary Payment Modal */}
       <AnimatePresence>
         {showModal && (
-          <motion.div 
+    <motion.div
             className="modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div 
@@ -140,7 +140,7 @@ const OrderConfirmation = () => {
               </button>
               <div className="modal-icon">
                 <MdInfo />
-              </div>
+        </div>
               <h3>Important Payment Information</h3>
               <p>
                 The manual payment process is <strong>temporary</strong>. We're currently working on implementing online payment options to provide you with a more convenient shopping experience.

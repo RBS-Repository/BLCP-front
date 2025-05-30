@@ -1,202 +1,186 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { FaSearch, FaTimes, FaFilter, FaList, FaGripHorizontal, FaSortAmountDown } from 'react-icons/fa';
 import { motion } from 'framer-motion';
-import { FaTimes, FaFilter, FaSortAmountDown, FaSearch } from 'react-icons/fa';
-import GridLayoutControls from './GridLayoutControls';
 
-const StickyFilterBar = ({
-  activeFilters = {},
-  onClearFilter = () => {},
-  onClearAll = () => {},
-  gridLayout = 'standard',
-  onLayoutChange = () => {},
-  searchQuery = '',
-  onSearchChange = () => {},
-  sortOptions = [],
-  sortBy = 'featured',
-  onSortChange = () => {}
+const StickyFilterBar = ({ 
+  activeFilters, 
+  onClearFilter, 
+  onClearAll, 
+  gridLayout, 
+  onLayoutChange, 
+  searchQuery, 
+  onSearchChange,
+  sortOptions,
+  sortBy,
+  onSortChange
 }) => {
   const [showSearch, setShowSearch] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(80); // Default header height (5rem)
+  const [inputValue, setInputValue] = useState(searchQuery || '');
   
-  // Effect to track header height changes
-  useEffect(() => {
-    const updateHeaderHeight = () => {
-      const header = document.querySelector('header');
-      if (header) {
-        const height = header.offsetHeight;
-        setHeaderHeight(height);
-      }
-    };
-    
-    // Initial height
-    updateHeaderHeight();
-    
-    // Update on scroll as header might change size
-    window.addEventListener('scroll', updateHeaderHeight);
-    // Update on resize as well
-    window.addEventListener('resize', updateHeaderHeight);
-    
-    return () => {
-      window.removeEventListener('scroll', updateHeaderHeight);
-      window.removeEventListener('resize', updateHeaderHeight);
-    };
-  }, []);
-  
-  // Helper function to check if there are any active filters
-  const hasActiveFilters = (activeFilters) => {
-    return activeFilters.category !== 'all' || 
-           activeFilters.searchQuery || 
-           activeFilters.sortBy !== 'featured';
+  // Handle search input changes
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    onSearchChange(value);
   };
   
-  // Get label for sort option
-  const getSortLabel = (sortId) => {
-    const option = sortOptions.find(opt => opt.id === sortId);
-    return option ? option.name : 'Featured';
+  // Handle search form submission
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    onSearchChange(inputValue);
+    setShowSearch(false);
   };
-  
+
   return (
-    <motion.div
-      className="sticky z-30 bg-white shadow-md border-b border-gray-200"
-      style={{ 
-        top: `${headerHeight}px`,
-        transition: 'top 0.3s ease, transform 0.3s ease-in-out' // Enhanced transition
-      }}
-      initial={{ y: -50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: -50, opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* Active Filters */}
-          <div className="flex items-center flex-grow gap-2">
-            <span className="text-gray-700 font-medium flex items-center">
-              <FaFilter className="mr-2" /> 
-              Filters:
-            </span>
-            
-            {hasActiveFilters(activeFilters) ? (
-              <div className="flex flex-wrap gap-2 items-center">
-                {/* Category filter pill */}
-                {activeFilters.category && (
-                  <div className="flex items-center px-3 py-1 bg-gray-100 rounded-full text-sm gap-2">
-                    <span className="text-gray-800">{activeFilters.category}</span>
-                    <button 
-                      onClick={() => onClearFilter('category')}
-                      className="text-gray-500 hover:text-gray-700"
-                      aria-label="Clear category filter"
-                    >
-                      <FaTimes size={12} />
-                    </button>
-                  </div>
-                )}
-                
-                {/* Search query pill */}
-                {activeFilters.search && (
-                  <div className="flex items-center px-3 py-1 bg-gray-100 rounded-full text-sm gap-2">
-                    <span className="text-gray-800">"{activeFilters.search}"</span>
-                    <button 
-                      onClick={() => onClearFilter('search')}
-                      className="text-gray-500 hover:text-gray-700"
-                      aria-label="Clear search filter"
-                    >
-                      <FaTimes size={12} />
-                    </button>
-                  </div>
-                )}
-                
-                {/* Sort option pill */}
-                {activeFilters.sort && (
-                  <div className="flex items-center px-3 py-1 bg-gray-100 rounded-full text-sm gap-2">
-                    <span className="text-gray-800">Sort: {getSortLabel(activeFilters.sort)}</span>
-                    <button 
-                      onClick={() => onClearFilter('sort')}
-                      className="text-gray-500 hover:text-gray-700"
-                      aria-label="Clear sort filter"
-                    >
-                      <FaTimes size={12} />
-                    </button>
-                  </div>
-                )}
-                
-                {/* Clear all button */}
-                <button 
-                  onClick={onClearAll}
-                  className="ml-2 text-sm text-[#363a94] hover:underline"
-                  aria-label="Clear all filters"
-                >
-                  Clear All
-                </button>
+    <div className="sticky-filter-bar w-full py-2 px-3">
+      <div className="max-w-7xl mx-auto">
+        {showSearch ? (
+          <motion.form 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center"
+            onSubmit={handleSearchSubmit}
+          >
+            <div className="relative flex-grow">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={handleSearchChange}
+                placeholder="Search products..."
+                className="w-full pl-9 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#363a94] focus:border-transparent text-sm"
+                autoFocus
+              />
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                <FaSearch size={14} />
               </div>
-            ) : (
-              <span className="text-gray-500 text-sm">No active filters</span>
-            )}
-          </div>
-          
-          {/* Layout controls and quick filters */}
-          <div className="flex items-center gap-2">
-            {/* Expandable search */}
-            {showSearch ? (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 'auto', opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="relative"
-              >
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Search..."
-                  className="pl-8 pr-4 py-1 border border-gray-300 rounded-full text-sm focus:ring-1 focus:ring-[#363a94] focus:border-[#363a94] outline-none"
-                  autoFocus
-                />
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={12} />
-                <button
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  onClick={() => setShowSearch(false)}
-                  aria-label="Close search"
+              {inputValue && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setInputValue('');
+                    onSearchChange('');
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  <FaTimes size={12} />
+                  <FaTimes size={14} />
                 </button>
-              </motion.div>
-            ) : (
+              )}
+            </div>
+            <button 
+              type="button"
+              onClick={() => setShowSearch(false)}
+              className="ml-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+            >
+              <FaTimes size={16} />
+            </button>
+          </motion.form>
+        ) : (
+          <div className="flex items-center justify-between">
+            {/* Left side - Active filters or search button */}
+            <div className="flex items-center space-x-1.5">
               <button
                 onClick={() => setShowSearch(true)}
-                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full"
-                aria-label="Open search"
+                className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center"
+                aria-label="Search products"
               >
                 <FaSearch size={14} />
               </button>
-            )}
-            
-            {/* Sort dropdown */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => onSortChange(e.target.value)}
-                className="appearance-none pl-7 pr-8 py-1 border border-gray-300 rounded-full text-sm focus:ring-1 focus:ring-[#363a94] focus:border-[#363a94] outline-none cursor-pointer"
-                aria-label="Sort options"
-              >
-                {sortOptions.map(option => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-              <FaSortAmountDown className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
+              
+              {/* Display active category filter */}
+              {activeFilters.category && (
+                <div className="flex items-center bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-xs">
+                  <span className="truncate max-w-[100px]">{activeFilters.category}</span>
+                  <button 
+                    onClick={() => onClearFilter('category')}
+                    className="ml-1 text-purple-500 hover:text-purple-700"
+                  >
+                    <FaTimes size={8} />
+                  </button>
+                </div>
+              )}
+              
+              {/* Display active search filter */}
+              {activeFilters.search && (
+                <div className="flex items-center bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs">
+                  <span className="truncate max-w-[100px]">{activeFilters.search}</span>
+                  <button 
+                    onClick={() => onClearFilter('search')}
+                    className="ml-1 text-blue-500 hover:text-blue-700"
+                  >
+                    <FaTimes size={8} />
+                  </button>
+                </div>
+              )}
+              
+              {/* Display active sort filter */}
+              {activeFilters.sort && (
+                <div className="flex items-center bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs">
+                  <span className="truncate max-w-[100px]">
+                    {sortOptions.find(opt => opt.id === activeFilters.sort)?.name || activeFilters.sort}
+                  </span>
+                  <button 
+                    onClick={() => onClearFilter('sort')}
+                    className="ml-1 text-amber-500 hover:text-amber-700"
+                  >
+                    <FaTimes size={8} />
+                  </button>
+                </div>
+              )}
+              
+              {/* Show clear all button if any filter is active */}
+              {(activeFilters.category || activeFilters.search || activeFilters.sort) && (
+                <button
+                  onClick={onClearAll}
+                  className="text-xs text-[#363a94] hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
             </div>
             
-            {/* Grid layout controls */}
-            <GridLayoutControls 
-              activeLayout={gridLayout}
-              onLayoutChange={onLayoutChange}
-            />
+            {/* Right side - View toggle and sort */}
+            <div className="flex items-center space-x-2">
+              {/* View mode toggle */}
+              <button
+                onClick={() => onLayoutChange(gridLayout === 'list' ? 'compact' : 'list')}
+                className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-center"
+                aria-label={`Switch to ${gridLayout === 'list' ? 'grid' : 'list'} view`}
+              >
+                {gridLayout === 'list' ? <FaGripHorizontal size={14} /> : <FaList size={14} />}
+              </button>
+              
+              {/* Sort dropdown */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => onSortChange(e.target.value)}
+                  className="appearance-none pl-7 pr-8 py-2 border border-gray-200 rounded-lg bg-white text-xs"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
+                  <FaSortAmountDown size={10} className="text-gray-500" />
+                </div>
+                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                  <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 

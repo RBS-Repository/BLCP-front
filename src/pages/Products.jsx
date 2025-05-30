@@ -561,18 +561,18 @@ const Products = () => {
       
       if (filterSection && header) {
         const headerHeight = header.offsetHeight;
-        const filterSectionRect = filterSection.getBoundingClientRect();
+        const filterSectionTop = filterSection.getBoundingClientRect().top;
         
-        // Show sticky bar when the filter section's bottom edge is at or above the header's bottom edge
-        // The header is fixed at the top, so its bottom edge is at headerHeight
-        setStickyFilterVisible(filterSectionRect.bottom <= headerHeight);
+        // Show sticky bar when the filter section is scrolled past the header
+        setStickyFilterVisible(filterSectionTop < headerHeight);
       }
     };
     
     // Run once on mount to set initial state
     handleScroll();
     
-    window.addEventListener('scroll', handleScroll);
+    // Use passive listener for better performance
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
@@ -1498,22 +1498,28 @@ const Products = () => {
       {/* Sticky Filter Bar - visible when filters are scrolled out of view, only on mobile */}
       <AnimatePresence>
         {stickyFilterVisible && (
-          <motion.div className="md:hidden">
-          <StickyFilterBar 
-            activeFilters={getActiveFilters()}
-            onClearFilter={handleClearFilter}
-            onClearAll={handleClearAllFilters}
-            gridLayout={gridLayout}
-            onLayoutChange={setGridLayout}
-            searchQuery={searchQuery}
-            onSearchChange={(query) => {
-              setSearchQuery(query);
-              setCurrentPage(1);
-            }}
-            sortOptions={sortOptions}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-          />
+          <motion.div 
+            className="fixed top-0 left-0 right-0 z-40 md:hidden pt-16"
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <StickyFilterBar 
+              activeFilters={getActiveFilters()}
+              onClearFilter={handleClearFilter}
+              onClearAll={handleClearAllFilters}
+              gridLayout={gridLayout}
+              onLayoutChange={setGridLayout}
+              searchQuery={searchQuery}
+              onSearchChange={(query) => {
+                setSearchQuery(query);
+                setCurrentPage(1);
+              }}
+              sortOptions={sortOptions}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -2130,6 +2136,15 @@ const Products = () => {
         
         .fade-in-up {
           animation: fadeInUp 0.5s ease-out;
+        }
+        
+        /* Sticky filter bar styling */
+        .sticky-filter-bar {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          background-color: rgba(255, 255, 255, 0.95);
+          border-bottom: 1px solid rgba(229, 231, 235, 0.8);
         }
       `}</style>
     </div>

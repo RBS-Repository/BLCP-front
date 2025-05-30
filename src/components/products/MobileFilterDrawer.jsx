@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
-const MobileFilterDrawer = ({ 
-  isOpen, 
-  onClose, 
-  categories, 
-  selectedCategory, 
+const MobileFilterDrawer = ({
+  isOpen,
+  onClose,
+  categories,
+  selectedCategory,
   onSelectCategory,
   sortOptions,
   sortBy,
@@ -80,13 +80,13 @@ const MobileFilterDrawer = ({
     if (filteredCategories.length === 0) return null;
     
     return filteredCategories.map((category) => {
-      const categoryId = category.id.toString();
+          const categoryId = category.id.toString();
       const hasChildCategories = hasChildren(categoryId, allCategories);
       const isExpanded = expandedCategories.has(categoryId);
       const childCount = countChildren(categoryId, allCategories);
       const productCount = getProductCountForCategory(categoryId, allCategories);
-      
-      return (
+          
+          return (
         <div key={categoryId} className="mb-2">
           <div className={`rounded-lg overflow-hidden transition-all duration-200 ${
             selectedCategory === category.id
@@ -94,7 +94,7 @@ const MobileFilterDrawer = ({
               : 'bg-white border border-gray-200 text-gray-700'
           }`}>
             <div className="flex items-center justify-between">
-              <button
+                  <button
                 onClick={(e) => {
                   e.preventDefault();
                   
@@ -170,8 +170,8 @@ const MobileFilterDrawer = ({
                         : 'text-gray-400'
                     }`}>
                       ({childCount})
-                    </span>
-                  )}
+                      </span>
+                    )}
                 </div>
               </button>
               
@@ -213,11 +213,11 @@ const MobileFilterDrawer = ({
               )}
             </AnimatePresence>
           )}
-        </div>
-      );
+      </div>
+    );
     });
   };
-  
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -243,7 +243,7 @@ const MobileFilterDrawer = ({
             {/* Header */}
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-800">Filters</h2>
-              <button
+              <button 
                 onClick={onClose}
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
@@ -271,7 +271,7 @@ const MobileFilterDrawer = ({
                     <FaSearch />
                   </div>
                   {inputValue && (
-                    <button
+                    <button 
                       onClick={() => {
                         setInputValue('');
                         onSearchChange('');
@@ -281,7 +281,7 @@ const MobileFilterDrawer = ({
                       <FaTimes />
                     </button>
                   )}
-                </div>
+                  </div>
               </div>
               
               {/* Sort Options */}
@@ -411,7 +411,7 @@ const MobileFilterDrawer = ({
                         </button>
                       </div>
                     )}
-                  </div>
+                    </div>
                 </div>
               )}
             </div>
@@ -419,18 +419,18 @@ const MobileFilterDrawer = ({
             {/* Footer */}
             <div className="p-4 border-t border-gray-200 bg-gray-50">
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={onClearAll}
+              <button
+                onClick={onClearAll}
                   className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium"
-                >
+              >
                   Clear All
-                </button>
-                <button
-                  onClick={onClose}
+              </button>
+              <button
+                onClick={onClose}
                   className="px-4 py-3 bg-[#363a94] text-white rounded-lg font-medium"
                 >
                   Apply Filters
-                </button>
+              </button>
               </div>
             </div>
           </motion.div>
