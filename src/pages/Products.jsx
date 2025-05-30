@@ -1159,7 +1159,7 @@ const Products = () => {
                   <span>{category.name}</span>
                   {level > 0 && (
                     <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
-                      Sub
+                      •
                     </span>
                   )}
                   
@@ -1341,7 +1341,7 @@ const Products = () => {
                 {getCategoryName(selectedCategory)}
                 {getCategoryDetails(selectedCategory).hasChildren && (
                   <span className="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">
-                    +subcategories
+                    +{getCategoryDetails(selectedCategory).subcategoryCount || ''}
                   </span>
                 )}
               </li>
@@ -1810,7 +1810,7 @@ const Products = () => {
                         Category: {getCategoryName(selectedCategory)}
                         {getCategoryDetails(selectedCategory).hasChildren && (
                           <span className="ml-1 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">
-                            +subcategories
+                            +{getCategoryDetails(selectedCategory).subcategoryCount || ''}
                           </span>
                         )}
                       </span>
@@ -1842,7 +1842,7 @@ const Products = () => {
                           className="text-sm text-[#363a94] hover:bg-[#363a94]/5 hover:underline px-2 py-1 rounded-md transition-all"
                     aria-label="Clear all filters"
                   >
-                    Clear fsdall
+                    Clear all
                   </button>
               </div>
                     )}

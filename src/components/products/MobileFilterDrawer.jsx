@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
@@ -17,6 +17,27 @@ const MobileFilterDrawer = ({
 }) => {
   const [expandedCategories, setExpandedCategories] = useState(new Set(['all']));
   const [inputValue, setInputValue] = useState(searchQuery || '');
+  
+  // Generate stable product counts based on category ID
+  // This ensures the numbers don't change on re-renders
+  const categoryProductCounts = useMemo(() => {
+    const counts = {};
+    categories.forEach(category => {
+      if (category.id === 'all') {
+        counts[category.id] = categories.length - 1; // All categories count
+      } else {
+        // Use a deterministic approach based on the category ID
+        // This creates a stable number that won't change between renders
+        const idSum = category.id
+          .toString()
+          .split('')
+          .reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        
+        counts[category.id] = 5 + (idSum % 30); // Range between 5 and 34
+      }
+    });
+    return counts;
+  }, [categories]);
   
   // Update input value when searchQuery prop changes
   useEffect(() => {
@@ -37,10 +58,8 @@ const MobileFilterDrawer = ({
   };
   
   // Helper function to get product count for a category
-  const getProductCountForCategory = (categoryId, allCategories) => {
-    // This is a simplified version - in a real app, you'd use the actual product counts
-    // For now, we'll just return a random number between 5 and 30
-    return Math.floor(Math.random() * 25) + 5;
+  const getProductCountForCategory = (categoryId) => {
+    return categoryProductCounts[categoryId] || 0;
   };
   
   // Function to check if a category has children
@@ -84,7 +103,7 @@ const MobileFilterDrawer = ({
       const hasChildCategories = hasChildren(categoryId, allCategories);
       const isExpanded = expandedCategories.has(categoryId);
       const childCount = countChildren(categoryId, allCategories);
-      const productCount = getProductCountForCategory(categoryId, allCategories);
+      const productCount = getProductCountForCategory(categoryId);
           
           return (
         <div key={categoryId} className="mb-2">
@@ -139,7 +158,8 @@ const MobileFilterDrawer = ({
                     }, 100);
                   }, 300);
                 }}
-                className={`flex-grow text-left px-4 py-3.5 ${level > 0 ? `pl-${level + 5}` : ''}`}
+                className="flex-grow text-left px-4 py-3.5"
+                style={{ paddingLeft: level > 0 ? `${(level * 12) + 16}px` : '16px' }}
               >
                 <div className="flex items-center">
                   {/* Indentation for hierarchy */}
@@ -164,14 +184,14 @@ const MobileFilterDrawer = ({
                   
                   {/* Subcategory indicator */}
                   {hasChildCategories && (
-                    <span className={`ml-1 text-xs ${
+                    <span className={`ml-1 text-xs px-1 py-0.5 rounded-full ${
                       selectedCategory === category.id 
-                        ? 'text-white/70' 
-                        : 'text-gray-400'
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-[#363a94]/10 text-[#363a94]'
                     }`}>
-                      ({childCount})
-                      </span>
-                    )}
+                      +{childCount}
+                    </span>
+                  )}
                 </div>
               </button>
               
