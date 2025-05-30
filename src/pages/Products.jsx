@@ -534,16 +534,24 @@ const Products = () => {
 
   // Add dedicated effect for category change - to avoid full reloads
   useEffect(() => {
-    // When category changes, show a loading indicator just for the products
-    setLoading(true);
+    // Only show loading state for the product list section, not the whole page
+    const productSection = document.getElementById('products-section');
     
-    // Use a shorter timeout for better UX
-    const timer = setTimeout(() => {
-        setLoading(false);
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [selectedCategory]);
+    if (productSection) {
+      // Add loading class to the product section only
+      productSection.classList.add('section-loading');
+      
+      // Use a shorter timeout for better UX
+      const timer = setTimeout(() => {
+        productSection.classList.remove('section-loading');
+      }, 400);
+      
+      return () => {
+        clearTimeout(timer);
+        productSection.classList.remove('section-loading');
+      };
+    }
+  }, [selectedCategory, searchQuery, sortBy]);
   
   // Add useEffect for scroll position and sticky filter bar
   useEffect(() => {
@@ -808,12 +816,19 @@ const Products = () => {
 
   // Add a function to clear specific filters
   const handleClearFilter = (filterKey) => {
+    // Show loading indicator for the product section only
+    const productSection = document.getElementById('products-section');
+    if (productSection) {
+      productSection.classList.add('section-loading');
+    }
+    
     switch (filterKey) {
       case 'category':
         setSelectedCategory('all');
         break;
       case 'search':
         setSearchQuery('');
+        setInputValue('');
         break;
       case 'sort':
         setSortBy('featured');
@@ -822,14 +837,35 @@ const Products = () => {
         break;
     }
     setCurrentPage(1);
+    
+    // Remove loading class after products are updated
+    setTimeout(() => {
+      if (productSection) {
+        productSection.classList.remove('section-loading');
+      }
+    }, 400);
   };
 
   // Add a function to clear all filters
   const handleClearAllFilters = () => {
+    // Show loading indicator for the product section only
+    const productSection = document.getElementById('products-section');
+    if (productSection) {
+      productSection.classList.add('section-loading');
+    }
+    
     setSelectedCategory('all');
     setSearchQuery('');
+    setInputValue('');
     setSortBy('featured');
     setCurrentPage(1);
+    
+    // Remove loading class after products are updated
+    setTimeout(() => {
+      if (productSection) {
+        productSection.classList.remove('section-loading');
+      }
+    }, 400);
   };
 
   // Function to get active filters for the StickyFilterBar
@@ -1400,7 +1436,41 @@ const Products = () => {
                 
                 {selectedCategory !== 'all' && (
                   <button 
-                    onClick={() => setSelectedCategory('all')} 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      
+                      // Show loading indicator for the product section only
+                      const productSection = document.getElementById('products-section');
+                      if (productSection) {
+                        productSection.classList.add('section-loading');
+                      }
+                      
+                      // Set the selected category to 'all'
+                      setSelectedCategory('all');
+                      setCurrentPage(1);
+                      
+                      // Scroll to products section with smooth animation
+                      setTimeout(() => {
+                        const productsSection = document.getElementById('products-section');
+                        if (productsSection) {
+                          const headerOffset = 100;
+                          const elementPosition = productsSection.getBoundingClientRect().top;
+                          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                          
+                          window.scrollTo({
+                            top: offsetPosition,
+                            behavior: "smooth"
+                          });
+                        }
+                        
+                        // Remove loading class after products are updated
+                        setTimeout(() => {
+                          if (productSection) {
+                            productSection.classList.remove('section-loading');
+                          }
+                        }, 400);
+                      }, 100);
+                    }}
                     className="px-6 py-2.5 bg-transparent border border-white text-white rounded-lg font-medium hover:bg-white/10 transition-all"
                   >
                     View All Products
@@ -1503,15 +1573,42 @@ const Products = () => {
                   <h3 className="text-md font-medium text-gray-800">Categories</h3>
                   <div className="max-h-80 overflow-y-auto pr-2 category-stack">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        
+                        // Show loading indicator for the product section only
+                        const productSection = document.getElementById('products-section');
+                        if (productSection) {
+                          productSection.classList.add('section-loading');
+                        }
+                        
+                        // Set the selected category
                         setSelectedCategory('all');
                         setCurrentPage(1);
+                        
+                        // Scroll to products section with smooth animation
+                        setTimeout(() => {
+                          const productsSection = document.getElementById('products-section');
+                          if (productsSection) {
+                            const headerOffset = 100;
+                            const elementPosition = productsSection.getBoundingClientRect().top;
+                            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                            
+                            window.scrollTo({
+                              top: offsetPosition,
+                              behavior: "smooth"
+                            });
+                          }
+                          
+                          // Remove loading class after products are updated
+                          setTimeout(() => {
+                            if (productSection) {
+                              productSection.classList.remove('section-loading');
+                            }
+                          }, 400);
+                        }, 100);
                       }}
-                      className={`w-full mb-3 px-4 py-3 rounded-lg transition-all text-sm font-medium flex items-center ${
-                        selectedCategory === 'all'
-                          ? 'bg-[#363a94] text-white shadow-md'
-                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                      }`}
+                      className={`category-button-enhanced mb-3 ${selectedCategory === 'all' ? 'active' : ''}`}
                     >
                       All Categories
                     </button>
@@ -1739,7 +1836,7 @@ const Products = () => {
                           className="text-sm text-[#363a94] hover:bg-[#363a94]/5 hover:underline px-2 py-1 rounded-md transition-all"
                     aria-label="Clear all filters"
                   >
-                    Clear all
+                    Clear fsdall
                   </button>
               </div>
                     )}

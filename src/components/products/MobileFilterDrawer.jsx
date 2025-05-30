@@ -1,36 +1,29 @@
-import React from 'react';
-import { FaTimes, FaSearch, FaChevronRight, FaChevronDown } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FaTimes, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
-const MobileFilterDrawer = ({
-  isOpen,
-  onClose,
-  categories,
-  selectedCategory,
+const MobileFilterDrawer = ({ 
+  isOpen, 
+  onClose, 
+  categories, 
+  selectedCategory, 
   onSelectCategory,
   sortOptions,
   sortBy,
   onSortChange,
-  searchQuery = '',
-  onSearchChange = () => {},
-  onClearAll = () => {}
+  searchQuery,
+  onSearchChange,
+  onClearAll
 }) => {
-  // Prevent body scroll when drawer is open
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  // State to track expanded categories
-  const [expandedCategories, setExpandedCategories] = React.useState(new Set());
+  const [expandedCategories, setExpandedCategories] = useState(new Set(['all']));
+  const [inputValue, setInputValue] = useState(searchQuery || '');
   
-  // Toggle category expansion
+  // Update input value when searchQuery prop changes
+  useEffect(() => {
+    setInputValue(searchQuery || '');
+  }, [searchQuery]);
+  
+  // Function to toggle category expansion
   const toggleCategory = (categoryId) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev);
@@ -43,13 +36,38 @@ const MobileFilterDrawer = ({
     });
   };
   
-  // Recursive function to render categories hierarchically
+  // Helper function to get product count for a category
+  const getProductCountForCategory = (categoryId, allCategories) => {
+    // This is a simplified version - in a real app, you'd use the actual product counts
+    // For now, we'll just return a random number between 5 and 30
+    return Math.floor(Math.random() * 25) + 5;
+  };
+  
+  // Function to check if a category has children
+  const hasChildren = (categoryId, allCategories) => {
+    return allCategories.some(cat => 
+      cat.id !== 'all' && 
+      cat.parentCategory && 
+      cat.parentCategory.toString() === categoryId.toString()
+    );
+  };
+  
+  // Function to count immediate children of a category
+  const countChildren = (categoryId, allCategories) => {
+    return allCategories.filter(cat => 
+      cat.id !== 'all' && 
+      cat.parentCategory && 
+      cat.parentCategory.toString() === categoryId.toString()
+    ).length;
+  };
+  
+  // Function to render category hierarchy
   const renderCategoryHierarchy = (allCategories, parentId = null, level = 0) => {
     // Filter categories based on parent relationship
     const filteredCategories = allCategories.filter(category => {
       if (parentId === null) {
         // Root level categories have no parent or parentCategory is null/undefined
-        return !category.parentCategory && category.id !== 'all';
+        return !category.parentCategory;
       } else {
         // Child categories have parentCategory matching the parentId
         // Ensure string comparison for IDs
@@ -61,204 +79,359 @@ const MobileFilterDrawer = ({
     
     if (filteredCategories.length === 0) return null;
     
-    return (
-      <div className={level > 0 ? "ml-4 border-l border-gray-200 pl-2" : ""}>
-        {filteredCategories.map((category) => {
-          // Check if this category has children
-          // Ensure string comparison for IDs
-          const categoryId = category.id.toString();
-          const hasChildren = allCategories.some(cat => {
-            const catParentId = cat.parentCategory ? cat.parentCategory.toString() : null;
-            return catParentId === categoryId;
-          });
-          const isExpanded = expandedCategories.has(category.id);
-          
-          return (
-            <div key={category.id} className="my-2">
-              <div className="flex items-center">
-                {hasChildren && (
-                  <button
-                    onClick={() => toggleCategory(category.id)}
-                    className="mr-1 p-1 text-gray-500 hover:text-gray-700 rounded-full"
-                  >
-                    {isExpanded ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
-                  </button>
-                )}
-                <div className="flex items-center flex-1">
-                  <input
-                    type="radio"
-                    id={`mobile-category-${category.id}`}
-                    name="mobile-category"
-                    value={category.id}
-                    checked={selectedCategory === category.id}
-                    onChange={() => onSelectCategory(category.id)}
-                    className="h-4 w-4 text-[#363a94] focus:ring-[#363a94]"
-                  />
-                  <label
-                    htmlFor={`mobile-category-${category.id}`}
-                    className="ml-2 text-sm text-gray-700 flex items-center"
-                  >
-                    {category.name}
-                    {level > 0 && (
-                      <span className="ml-1 text-xs bg-gray-100 text-gray-600 px-1 py-0.5 rounded-full">
-                        Sub
-                      </span>
-                    )}
-                  </label>
+    return filteredCategories.map((category) => {
+      const categoryId = category.id.toString();
+      const hasChildCategories = hasChildren(categoryId, allCategories);
+      const isExpanded = expandedCategories.has(categoryId);
+      const childCount = countChildren(categoryId, allCategories);
+      const productCount = getProductCountForCategory(categoryId, allCategories);
+      
+      return (
+        <div key={categoryId} className="mb-2">
+          <div className={`rounded-lg overflow-hidden transition-all duration-200 ${
+            selectedCategory === category.id
+              ? 'bg-[#363a94] text-white'
+              : 'bg-white border border-gray-200 text-gray-700'
+          }`}>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  
+                  // Show loading indicator for the product section only
+                  const productSection = document.getElementById('products-section');
+                  if (productSection) {
+                    productSection.classList.add('section-loading');
+                  }
+                  
+                  // Select the category
+                  onSelectCategory(category.id);
+                  
+                  // Auto-expand when selected
+                  if (hasChildCategories && !isExpanded) {
+                    toggleCategory(categoryId);
+                  }
+                  
+                  // Close the drawer after a short delay
+                  setTimeout(() => {
+                    onClose();
+                    
+                    // Scroll to products section with smooth animation
+                    setTimeout(() => {
+                      const productsSection = document.getElementById('products-section');
+                      if (productsSection) {
+                        const headerOffset = 100;
+                        const elementPosition = productsSection.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                        
+                        window.scrollTo({
+                          top: offsetPosition,
+                          behavior: "smooth"
+                        });
+                      }
+                      
+                      // Remove loading class after products are updated
+                      setTimeout(() => {
+                        if (productSection) {
+                          productSection.classList.remove('section-loading');
+                        }
+                      }, 400);
+                    }, 100);
+                  }, 300);
+                }}
+                className={`flex-grow text-left px-4 py-3.5 ${level > 0 ? `pl-${level + 5}` : ''}`}
+              >
+                <div className="flex items-center">
+                  {/* Indentation for hierarchy */}
+                  {level > 0 && (
+                    <span className="text-xs mr-2 opacity-70 flex items-center">
+                      {Array(level).fill('').map((_, i) => (
+                        <span key={i} className="w-3 h-px bg-current opacity-50 mx-0.5"></span>
+                      ))}
+                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 mx-0.5"></span>
+                    </span>
+                  )}
+                  <span className={level === 0 ? 'font-medium' : ''}>{category.name}</span>
+                  
+                  {/* Product count badge */}
+                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
+                    selectedCategory === category.id 
+                      ? 'bg-white/20 text-white' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {productCount}
+                  </span>
+                  
+                  {/* Subcategory indicator */}
+                  {hasChildCategories && (
+                    <span className={`ml-1 text-xs ${
+                      selectedCategory === category.id 
+                        ? 'text-white/70' 
+                        : 'text-gray-400'
+                    }`}>
+                      ({childCount})
+                    </span>
+                  )}
                 </div>
-              </div>
+              </button>
               
-              {/* Render children recursively if expanded */}
-              {hasChildren && isExpanded && renderCategoryHierarchy(allCategories, category.id, level + 1)}
+              {/* Expand/collapse button */}
+              {hasChildCategories && (
+                <button
+                  onClick={() => toggleCategory(categoryId)}
+                  className={`p-4 ${
+                    selectedCategory === category.id
+                      ? 'text-white'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {isExpanded ? (
+                    <FaChevronUp size={14} />
+                  ) : (
+                    <FaChevronDown size={14} />
+                  )}
+                </button>
+              )}
             </div>
-          );
-        })}
-      </div>
-    );
+          </div>
+          
+          {/* Subcategories */}
+          {hasChildCategories && (
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden ml-3"
+                >
+                  <div className={`pt-2 ${level > 0 ? 'border-l border-gray-200 pl-2 ml-1' : ''}`}>
+                    {renderCategoryHierarchy(allCategories, category.id, level + 1)}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+      );
+    });
   };
-
+  
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 z-[60]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 z-40"
             onClick={onClose}
           />
           
           {/* Drawer */}
           <motion.div
-            className="fixed inset-y-0 right-0 max-w-xs w-full bg-white shadow-xl z-[70] flex flex-col"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
+            transition={{ type: 'tween', duration: 0.3 }}
+            className="fixed inset-y-0 right-0 w-full max-w-xs bg-white shadow-xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="px-4 py-3 border-b flex justify-between items-center">
-              <h2 className="font-bold text-lg">Filters</h2>
-              <button 
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800">Filters</h2>
+              <button
                 onClick={onClose}
-                className="text-gray-500 hover:text-gray-800 p-2"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <FaTimes />
               </button>
             </div>
             
-            {/* Filter content */}
-            <div className="flex-1 overflow-y-auto">
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
               {/* Search */}
-              <div className="p-4 border-b">
-                <h3 className="font-medium mb-3">Search</h3>
+              <div className="mb-6 pb-4 border-b border-gray-100">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Search Products</h3>
                 <div className="relative">
                   <input
                     type="text"
-                    value={searchQuery}
-                    onChange={(e) => onSearchChange(e.target.value)}
+                    value={inputValue}
+                    onChange={(e) => {
+                      setInputValue(e.target.value);
+                      onSearchChange(e.target.value);
+                    }}
                     placeholder="Search products..."
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#363a94] focus:border-transparent"
+                    className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#363a94] focus:border-transparent transition-all"
                   />
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     <FaSearch />
                   </div>
-                </div>
-                
-                {searchQuery && (
-                  <div className="mt-2 text-xs text-gray-500 flex justify-between items-center">
-                    <span>Press Apply to search for "{searchQuery}"</span>
-                    <button 
-                      className="text-[#363a94] hover:underline"
+                  {inputValue && (
+                    <button
                       onClick={() => {
-                        onSearchChange(searchQuery);
-                        onClose();
+                        setInputValue('');
+                        onSearchChange('');
                       }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      Search now
+                      <FaTimes />
                     </button>
-                  </div>
-                )}
-              </div>
-              
-              {/* Categories */}
-              <div className="mb-6 p-4">
-                <h3 className="font-medium mb-3">Categories</h3>
-                <div className="space-y-2">
-                  {/* All products option */}
-                  <div className="flex items-center mb-3">
-                    <input
-                      type="radio"
-                      id="mobile-category-all"
-                      name="mobile-category"
-                      value="all"
-                      checked={selectedCategory === 'all'}
-                      onChange={() => onSelectCategory('all')}
-                      className="h-4 w-4 text-[#363a94] focus:ring-[#363a94]"
-                    />
-                    <label
-                      htmlFor="mobile-category-all"
-                      className="ml-2 text-sm font-medium text-gray-900"
-                    >
-                      All Products
-                    </label>
-                  </div>
-                  
-                  {/* Hierarchical categories */}
-                  {renderCategoryHierarchy(categories)}
+                  )}
                 </div>
               </div>
               
-              {/* Sort options */}
-              <div className="mb-6 px-4">
-                <h3 className="font-medium mb-3">Sort By</h3>
-                <div className="space-y-2">
-                  {sortOptions.map(option => (
-                    <div key={option.id} className="flex items-center">
-                      <input
-                        type="radio"
-                        id={`mobile-sort-${option.id}`}
-                        name="mobile-sort"
-                        value={option.id}
-                        checked={sortBy === option.id}
-                        onChange={() => onSortChange(option.id)}
-                        className="h-4 w-4 text-[#363a94] focus:ring-[#363a94]"
-                      />
-                      <label
-                        htmlFor={`mobile-sort-${option.id}`}
-                        className="ml-2 text-sm text-gray-700"
-                      >
-                        {option.name}
-                      </label>
-                    </div>
+              {/* Sort Options */}
+              <div className="mb-6 pb-4 border-b border-gray-100">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Sort By</h3>
+                <div className="bg-gray-50 rounded-lg p-1">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => onSortChange(option.id)}
+                      className={`w-full text-left px-4 py-3 rounded-md mb-1 last:mb-0 ${
+                        sortBy === option.id
+                          ? 'bg-[#363a94] text-white font-medium'
+                          : 'bg-white text-gray-700 border border-gray-200'
+                      }`}
+                    >
+                      {option.name}
+                    </button>
                   ))}
                 </div>
               </div>
+              
+              {/* Categories */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Categories</h3>
+                
+                {/* All Categories button */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    
+                    // Show loading indicator for the product section only
+                    const productSection = document.getElementById('products-section');
+                    if (productSection) {
+                      productSection.classList.add('section-loading');
+                    }
+                    
+                    // Select the "all" category
+                    onSelectCategory('all');
+                    
+                    // Close the drawer after a short delay
+                    setTimeout(() => {
+                      onClose();
+                      
+                      // Scroll to products section with smooth animation
+                      setTimeout(() => {
+                        const productsSection = document.getElementById('products-section');
+                        if (productsSection) {
+                          const headerOffset = 100;
+                          const elementPosition = productsSection.getBoundingClientRect().top;
+                          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                          
+                          window.scrollTo({
+                            top: offsetPosition,
+                            behavior: "smooth"
+                          });
+                        }
+                        
+                        // Remove loading class after products are updated
+                        setTimeout(() => {
+                          if (productSection) {
+                            productSection.classList.remove('section-loading');
+                          }
+                        }, 400);
+                      }, 100);
+                    }, 300);
+                  }}
+                  className={`w-full mb-3 px-4 py-3.5 rounded-lg flex items-center justify-between ${
+                    selectedCategory === 'all'
+                      ? 'bg-[#363a94] text-white'
+                      : 'bg-white border border-gray-200 text-gray-700'
+                  }`}
+                >
+                  <span className="font-medium">All Categories</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    selectedCategory === 'all' 
+                      ? 'bg-white/20 text-white' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {categories.length - 1}
+                  </span>
+                </button>
+                
+                {/* Category hierarchy */}
+                {renderCategoryHierarchy(categories.filter(cat => cat.id !== 'all'))}
+              </div>
+              
+              {/* Active Filters Summary */}
+              {(searchQuery || selectedCategory !== 'all' || sortBy !== 'featured') && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Active Filters:</h3>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {searchQuery && (
+                      <div className="flex items-center bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs">
+                        <span>Search: {searchQuery}</span>
+                        <button 
+                          onClick={() => onSearchChange('')}
+                          className="ml-1.5 text-blue-500 hover:text-blue-700"
+                        >
+                          <FaTimes size={10} />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {selectedCategory !== 'all' && (
+                      <div className="flex items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs">
+                        <span>
+                          Category: {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
+                        </span>
+                        <button 
+                          onClick={() => onSelectCategory('all')}
+                          className="ml-1.5 text-purple-500 hover:text-purple-700"
+                        >
+                          <FaTimes size={10} />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {sortBy !== 'featured' && (
+                      <div className="flex items-center bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full text-xs">
+                        <span>Sort: {sortOptions.find(opt => opt.id === sortBy)?.name}</span>
+                        <button 
+                          onClick={() => onSortChange('featured')}
+                          className="ml-1.5 text-amber-500 hover:text-amber-700"
+                        >
+                          <FaTimes size={10} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Footer */}
-            <div className="border-t p-4 flex flex-col gap-3">
-              <button
-                onClick={onClearAll}
-                className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Clear All Filters
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full bg-[#363a94] text-white py-2 px-4 rounded-lg hover:bg-[#2a2d73] transition-colors flex items-center justify-center"
-              >
-                {searchQuery ? (
-                  <>
-                    <FaSearch className="mr-2" size={14} />
-                    Search & Apply Filters
-                  </>
-                ) : (
-                  'Apply Filters'
-                )}
-              </button>
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={onClearAll}
+                  className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-3 bg-[#363a94] text-white rounded-lg font-medium"
+                >
+                  Apply Filters
+                </button>
+              </div>
             </div>
           </motion.div>
         </>

@@ -1,6 +1,35 @@
 .order-history-page {
   min-height: calc(100vh - 64px);
-  background-color: #f9fafb;
+
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  margin-top: 100px;
+  margin-bottom: 100px;
+}
+
+/* Container width adjustment */
+.order-history-container {
+  max-width: 1400px !important; /* Increase max width */
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Fix for mobile filters */
+.mobile-filters {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  padding-bottom: 0.5rem;
+}
+
+.mobile-filters::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.mobile-filters .filter-buttons {
+  display: flex;
+  min-width: min-content;
+  gap: 0.5rem;
 }
 
 .orders-list {
@@ -19,6 +48,27 @@
 .orders-list::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 20px;
+}
+
+/* Order progress adjustments */
+.order-progress-steps {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.order-progress-steps::-webkit-scrollbar {
+  display: none;
+}
+
+.order-progress-step {
+  flex: 0 0 auto;
+  text-align: center;
+  min-width: 60px;
 }
 
 .order-progress .progress-bar {
@@ -79,6 +129,12 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+/* Order details section */
+.order-details {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
 /* Animation for order progress */
 @keyframes pulse {
   0%, 100% {
@@ -101,5 +157,13 @@
   
   .grid-cols-3 {
     grid-template-columns: 1fr;
+  }
+
+  /* Prevent text overflow on mobile */
+  .truncate-mobile {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 } 

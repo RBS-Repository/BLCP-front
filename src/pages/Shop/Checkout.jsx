@@ -60,6 +60,37 @@ const Checkout = () => {
   // Initialize these variables safely
   const itemCount = cartItems?.length || 0;
   
+  // Fix the subtotal calculation to properly access price - MOVED UP before it's used
+  const subtotal = cartItems?.reduce((total, item) => {
+    const price = item.product?.price || item.price || 0;
+    return total + (price * (item.quantity || 1));
+  }, 0) || 0;
+  
+  const tax = subtotal * 0.12; // 12% tax
+  const [shipping, setShipping] = useState(subtotal > 0 ? 150 : 0);
+
+  // Get stored checkout data
+  const checkoutData = JSON.parse(localStorage.getItem('checkoutData')) || {
+    items: cartItems.map(item => ({
+      product: item.product || {},
+      quantity: item.quantity,
+      price: item.price || 0,
+      subtotal: (item.price || 0) * (item.quantity || 0)
+    })),
+    summary: {
+      subtotal: subtotal,
+      tax: tax,
+      total: 0 // Initialize with 0, will be set properly in useEffect
+    }
+  };
+
+  // Get reward discount from checkout data if available
+  const rewardDiscount = checkoutData.summary?.rewardDiscount || 0;
+  const pendingReward = JSON.parse(localStorage.getItem('pendingReward')) || null;
+  
+  // Apply the reward discount to the total calculation
+  const [total, setTotal] = useState(subtotal + tax + shipping - rewardDiscount);
+
   // Load checkout data from localStorage when component mounts
   useEffect(() => {
     const savedCheckoutData = localStorage.getItem('checkoutData');
@@ -76,37 +107,6 @@ const Checkout = () => {
       }
     }
   }, []);
-
-  // Get stored checkout data
-  const checkoutData = JSON.parse(localStorage.getItem('checkoutData')) || {
-    items: cartItems.map(item => ({
-      product: item.product || {},
-      quantity: item.quantity,
-      price: item.price || 0,
-      subtotal: (item.price || 0) * (item.quantity || 0)
-    })),
-    summary: {
-      subtotal: subtotal,
-      tax: tax,
-      total: total
-    }
-  };
-
-  // Get reward discount from checkout data if available
-  const rewardDiscount = checkoutData.summary?.rewardDiscount || 0;
-  const pendingReward = JSON.parse(localStorage.getItem('pendingReward')) || null;
-
-  // Fix the subtotal calculation to properly access price
-  const subtotal = cartItems?.reduce((total, item) => {
-    const price = item.product?.price || item.price || 0;
-    return total + (price * (item.quantity || 1));
-  }, 0) || 0;
-  
-  const tax = subtotal * 0.12; // 12% tax
-  const [shipping, setShipping] = useState(subtotal > 0 ? 150 : 0);
-  
-  // Apply the reward discount to the total calculation
-  const [total, setTotal] = useState(subtotal + tax + shipping - rewardDiscount);
 
   // Update the total whenever subtotal, tax, shipping, or rewardDiscount changes
   useEffect(() => {
@@ -354,7 +354,7 @@ const Checkout = () => {
           email: formData.shipping.email.toLowerCase().trim()
         },
         payment: {
-          method: formData.payment.method,
+          method: 'card', // Using 'card' as the method but will be processed manually
           status: 'pending'
         },
         status: 'pending',
@@ -363,7 +363,9 @@ const Checkout = () => {
         paymentStatus: 'pending',
         refundStatus: 'none',
         refunds: [],
-        confirmationEmailHistory: []
+        confirmationEmailHistory: [],
+        // Add a note about manual payment
+        notes: 'This order will be processed with manual payment. Customer will be contacted for payment instructions.'
       };
 
       // If a reward is being applied, include it in the order
@@ -376,16 +378,6 @@ const Checkout = () => {
       }
 
       console.log('Creating order:', orderData);
-      
-      // DEBUG: Log specific summary values to verify calculations
-      console.log('Payment Summary Values:', {
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        tax: parseFloat(tax.toFixed(2)),
-        shipping: parseFloat(shipping.toFixed(2)),
-        rewardDiscount: parseFloat(rewardDiscount.toFixed(2)),
-        calculatedTotal: parseFloat((subtotal + tax + shipping - rewardDiscount).toFixed(2)),
-        actualTotal: parseFloat(total.toFixed(2))
-      });
 
       // Create order with proper error handling
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/orders`, {
@@ -397,73 +389,63 @@ const Checkout = () => {
         body: JSON.stringify(orderData)
       });
 
-      const order = await response.json();
-      console.log('Order created:', order);
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (err) {
+        console.error('Error parsing response:', err);
+        throw new Error('Unable to process order. Please try again.');
+      }
 
-      if (!order._id) {
+      if (!response.ok) {
+        console.error('Order creation failed:', responseData);
+        
+        // Handle specific error cases
+        if (responseData.error && responseData.error.includes('validation failed')) {
+          throw new Error('Order validation failed. Please check your information and try again.');
+        } else if (responseData.error === 'Insufficient stock') {
+          throw new Error(`Only ${responseData.available} units available for this product.`);
+        } else {
+          throw new Error(responseData.error || 'Failed to create order');
+        }
+      }
+
+      console.log('Order created:', responseData);
+
+      if (!responseData._id) {
         throw new Error('Order creation failed - no order ID received');
       }
 
-      // Then create PayMongo checkout session
-      const paymentData = {
-        amount: parseFloat(total.toFixed(2)),
-        description: `Payment for Order #${order._id}`,
-        remarks: `Order for ${orderData.customerName} - ${items.length} items${rewardDiscount > 0 ? `, Reward Applied: ₱${rewardDiscount.toFixed(2)}` : ''}`,
-        success_url: `${window.location.origin}/order-confirmation/${order._id}?status=success`,
-        cancel_url: `${window.location.origin}/order-confirmation/${order._id}?status=cancelled`,
-        metadata: {
-            orderId: order._id,
-          userId: user.uid,
-          customerName: orderData.customerName,
-          customerEmail: formData.shipping.email,
-          // Include reward information in metadata if a reward is being applied
-          rewardApplied: !!pendingReward,
-          rewardAmount: pendingReward ? pendingReward.amount : 0,
-          originalTotal: parseFloat((subtotal + tax + shipping).toFixed(2)),
-          discountedTotal: parseFloat(total.toFixed(2))
-        }
-      };
-
-      console.log('Creating payment:', paymentData);
-
-      try {
-        const paymentResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/payments/create-link`,
-          paymentData,
-          {
-          headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        console.log('Payment response:', paymentResponse.data);
-
-        if (paymentResponse.data.checkoutUrl) {
           // Clear cart and local storage
           clearCart();
         localStorage.removeItem('cart');
         localStorage.removeItem('checkoutData');
+      localStorage.removeItem('pendingReward');
         updateCart([]);
         
-          // Redirect to PayMongo checkout
-          window.location.href = paymentResponse.data.checkoutUrl;
-        } else {
-          throw new Error('No checkout URL received');
-        }
-      } catch (error) {
-        console.error('Payment creation error:', error);
-        throw new Error(error.response?.data?.error || 'Failed to create payment');
-      }
+      // Show success message
+      toast.success('Order placed successfully!');
+      
+      // Navigate to the order confirmation page with the order data
+      navigate(`/order-confirmation/${responseData._id}`, { 
+        state: { order: responseData }
+      });
 
-      if (order) {
-        clearCart(); // Only clear cart if order succeeded
-        setOrderSuccess(true);
+      } catch (error) {
+      console.error('Order submission error:', error);
+      
+      // Display user-friendly error message
+      let errorMessage = 'Failed to create order. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-    } catch (error) {
-      console.error('Order submission error:', error.response?.data || error.message);
-      toast.error(error.response?.data?.message || 'Failed to create order');
+      
+      toast.error(errorMessage);
+      
+      // Handle insufficient stock error
       if (error.response?.data?.error === 'Insufficient stock') {
         updateCart(cartItems.map(item => {
           if (item.product === error.response.data.productId) {
@@ -471,10 +453,6 @@ const Checkout = () => {
           }
           return item;
         }));
-        
-        toast.error(
-          `Only ${error.response.data.available} units available for this product`
-        );
       }
     } finally {
       setLoading(false);
@@ -805,11 +783,14 @@ const Checkout = () => {
 
   const renderPaymentMethod = () => {
     const paymentMethods = [
-      { id: 'card', name: 'Credit/Debit Card', logo: 'https://cdn-icons-png.flaticon.com/512/6963/6963703.png' },
-      { id: 'gcash', name: 'GCash', logo: 'https://images.seeklogo.com/logo-png/49/2/gcash-logo-png_seeklogo-498022.png' },
-      { id: 'grab_pay', name: 'GrabPay', logo: 'https://seeklogo.com/images/G/grab-pay-logo-A0CA65B6C4-seeklogo.com.png' },
-      { id: 'maya', name: 'Maya', logo: 'https://cdn-1.webcatalog.io/catalog/maya/maya-icon.png?v=1735783469648' },
+      { id: 'card', name: 'Manual Payment', logo: 'https://cdn-icons-png.flaticon.com/512/1019/1019607.png' },
     ];
+
+    // Add a dummy onChange handler for the radio button
+    const handlePaymentMethodChange = () => {
+      // Since we only have one payment method, no need to change anything
+      console.log('Payment method selected');
+    };
 
     return (
     <motion.div
@@ -819,35 +800,35 @@ const Checkout = () => {
         className="max-w-3xl mx-auto pt-8"
       >
         {/* Heading */}
-        <h2 className="text-3xl font-bold text-gray-800 mb-8">Choose Payment Method</h2>
-  
-        {/* Form with two-row grid */}
+      <h2 className="text-3xl font-bold text-gray-800 mb-8">Payment Method</h2>
+      
+      {/* Manual payment information */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+        <h3 className="text-xl font-semibold text-blue-800 mb-3">Manual Payment Process</h3>
+        <p className="text-gray-700 mb-3">
+          We are currently processing payments manually. After submitting your order, our team will contact you with payment instructions.
+        </p>
+        <p className="text-gray-700">
+          You'll receive payment details via email or phone within 24 hours of placing your order.
+        </p>
+      </div>
+
+      {/* Form with payment method selection */}
         <form onSubmit={handleSubmitOrder} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {paymentMethods.map((method) => (
-              <div
-                key={method.id}
-                className={`flex items-center p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                  formData.payment.method === method.id
-                    ? 'bg-blue-50 border border-blue-300'
-                    : 'hover:bg-gray-50'
-                }`}
-              >
+        <div className="flex items-center p-4 rounded-lg border border-gray-200 bg-white">
             <input
               type="radio"
-                  id={method.id}
+            id="manual-payment"
               name="payment_method"
-                  value={method.id}
-                  checked={formData.payment.method === method.id}
-              onChange={(e) => handleInputChange('payment', 'method', e.target.value)}
+            value="card"
+            checked={true}
+            onChange={handlePaymentMethodChange}
                   className="w-5 h-5 text-blue-500 mr-4 focus:ring-blue-500"
             />
-                <label htmlFor={method.id} className="flex items-center w-full">
-                  <img src={method.logo} alt={`${method.name} Logo`} className="w-12 h-12 mr-4" />
-                  <span className="text-lg font-medium text-gray-700">{method.name}</span>
+          <label htmlFor="manual-payment" className="flex items-center w-full">
+            <img src={paymentMethods[0].logo} alt="Manual Payment Logo" className="w-12 h-12 mr-4" />
+            <span className="text-lg font-medium text-gray-700">Manual Payment</span>
                 </label>
-          </div>
-            ))}
           </div>
   
           {/* Buttons */}
@@ -901,7 +882,7 @@ const Checkout = () => {
                   className="item-image"
                 />
                 <div className="item-details">
-                  <p className="item-name">{name}</p>
+                  <p className="item-name line-clamp-2 break-words">{name}</p>
                   
                   {/* Display variation information if available */}
                   {item.variationDisplay && (
@@ -936,13 +917,13 @@ const Checkout = () => {
             <p className="text-gray-600">
               <span className="font-medium">Name:</span> {formData.shipping.firstName} {formData.shipping.lastName}
             </p>
-            <p className="text-gray-600">
+            <p className="text-gray-600 break-words">
               <span className="font-medium">Email:</span> {formData.shipping.email}
             </p>
             <p className="text-gray-600">
               <span className="font-medium">Phone:</span> {formData.shipping.phone}
             </p>
-            <p className="text-gray-600">
+            <p className="text-gray-600 break-words">
               <span className="font-medium">Address:</span> {formData.shipping.address}
             </p>
             <p className="text-gray-600">
@@ -1007,9 +988,8 @@ const Checkout = () => {
             </div>
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">
-                Payment Method: {formData.payment.method === 'card' ? 'Credit/Debit Card' :
-                  formData.payment.method === 'gcash' ? 'GCash' :
-                  formData.payment.method === 'grab_pay' ? 'GrabPay' : 'Maya'}
+                Payment Method: Manual Payment
+                <span className="block mt-1 text-xs">You'll receive payment instructions after placing your order</span>
               </p>
             </div>
           </div>
@@ -1053,12 +1033,18 @@ const Checkout = () => {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
+      
     >
-      <div className="confirmation-content">
-        <div className="success-icon">✓</div>
+      <div className="confirmation-content" >
+        <div className="success-icon"  >✓</div>
         <h2>Thank You for Your Order!</h2>
         <p>Order ID: {orderId}</p>
         <p>Customer Name: {formData.shipping.firstName} {formData.shipping.lastName}</p>
+        <div className="p-4 my-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
+          <h3 className="font-bold mb-2">Manual Payment Instructions</h3>
+          <p>Your order has been received and is pending payment. Our team will contact you shortly with payment instructions via email or phone.</p>
+       
+        </div>
         <p>We'll send you an email confirmation shortly.</p>
         <Link to="/products" className="continue-shopping">
           Continue Shopping
@@ -1117,14 +1103,16 @@ const Checkout = () => {
               )}
             <div className="summary-items">
               {cartItems.map(item => (
-                <div key={item._id} className="summary-item">
+                <div key={item._id || Math.random()} className="summary-item">
                   <div className="item-info">
                     <img 
                       src={item.product?.image || 'https://via.placeholder.com/100'} 
-                      alt={item.name} 
+                      alt={item.product?.name || item.name || 'Product'} 
                     />
-                      <p className="item-name">{item.product?.name || item.name}</p>
+                    <div>
+                      <p className="item-name line-clamp-2 break-words">{item.product?.name || item.name}</p>
                       <p className="item-qty">Qty: {item.quantity}</p>
+                    </div>
                   </div>
                   <p className="item-price">
                       ₱{((item.product?.price || 0) * item.quantity).toLocaleString('en-PH', {
@@ -1183,9 +1171,8 @@ const Checkout = () => {
               </div>
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  Payment Method: {formData.payment.method === 'card' ? 'Credit/Debit Card' :
-                    formData.payment.method === 'gcash' ? 'GCash' :
-                    formData.payment.method === 'grab_pay' ? 'GrabPay' : 'Maya'}
+                  Payment Method: Manual Payment
+                  <span className="block mt-1 text-xs">You'll receive payment instructions after placing your order</span>
                 </p>
               </div>
             </div>

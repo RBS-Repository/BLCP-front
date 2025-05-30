@@ -1,191 +1,391 @@
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaCheckCircle, FaBox, FaShippingFast, FaEnvelope, FaPhoneAlt, FaMapMarkerAlt, FaFileInvoice, FaTimes } from 'react-icons/fa';
+import { MdPayment, MdInfo } from 'react-icons/md';
+import '../../styles/OrderConfirmation.css';
+import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import api from '../../api/client';
 
 const OrderConfirmation = () => {
   const { orderId } = useParams();
-  const [searchParams] = useSearchParams();
-  const status = searchParams.get('status');
+  const location = useLocation();
   const { user } = useAuth();
-  const [processingReward, setProcessingReward] = useState(false);
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(true);
 
+  // Show temporary payment notification when component mounts
   useEffect(() => {
-    // Handle different payment statuses
-    if (status === 'success') {
-      // On successful payment, finalize any pending reward redemption
-      finalizeRewardRedemption();
-    } else if (status === 'cancelled') {
-      // On cancelled payment, restore any pending rewards
-      restorePendingRewards();
-      localStorage.removeItem('cartItems');
-    }
-  }, [status, user, orderId]);
+    toast(
+      <div className="flex items-center">
+        <MdInfo className="text-blue-600 mr-2 text-lg" />
+        <span>
+          <strong>Note:</strong> Manual payment is a temporary process. Online payment options will be available soon.
+        </span>
+      </div>,
+      {
+        duration: 6000,
+        style: {
+          borderRadius: '10px',
+          background: '#EFF6FF',
+          color: '#1E40AF',
+          border: '1px solid #BFDBFE',
+          padding: '16px',
+        },
+      }
+    );
+  }, []);
 
-  // Function to finalize reward redemption
-  const finalizeRewardRedemption = async () => {
-    if (!user) return;
-    
-    try {
-      setProcessingReward(true);
-      
-      // Check if there's a pending reward in localStorage
-      const pendingRewardData = localStorage.getItem('pendingReward');
-      
-      if (pendingRewardData) {
-        const pendingReward = JSON.parse(pendingRewardData);
-        
-        // Get order ID from URL parameters for additional context
-        const orderIdFromUrl = window.location.pathname.split('/').pop();
-        
+  // Get order details from location state or fetch from API
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      setLoading(true);
+      try {
+        if (location.state?.order) {
+          setOrder(location.state.order);
+          setLoading(false);
+          return;
+        }
+
+        if (!orderId || !user) {
+          setError('Order information not found');
+          setLoading(false);
+          return;
+        }
+
         const token = await user.getIdToken();
-        
-        // Actually redeem the reward now that payment is confirmed
-        try {
-          const response = await api.post(
-            '/rewards/redeem', 
-            { 
-              userId: user.uid,
-              amount: pendingReward.amount,
-              orderId: orderId // Link the reward redemption to this order
-            },
-            {
-              headers: { 
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
-          
-          if (response.data.success) {
-            toast.success(`Reward of ₱${pendingReward.amount.toLocaleString()} successfully applied to your order!`);
-            
-            // Clear the pending reward from localStorage
-            localStorage.removeItem('pendingReward');
-            
-            // Try to update the UI to show the applied reward
-            const successMessage = document.querySelector('.text-gray-600');
-            if (successMessage) {
-              const rewardText = document.createElement('p');
-              rewardText.className = 'text-emerald-600 font-medium mt-2';
-              rewardText.textContent = `Reward of ₱${pendingReward.amount.toLocaleString()} applied`;
-              successMessage.parentNode.insertBefore(rewardText, successMessage.nextSibling);
-            }
-          } else {
-            toast.error('There was an issue applying your reward. Please contact support.');
+        const response = await api.get(`/orders/${orderId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
           }
-        } catch (apiError) {
-          // Check for specific error cases
-          if (apiError.response?.data?.error === 'Insufficient rewards balance') {
-            toast.error(`Unable to apply full reward amount. Available: ₱${apiError.response.data.available}, Requested: ₱${apiError.response.data.requested}`);
-          } else {
-            toast.error('Error applying reward. Our team has been notified.');
-          }
-          
-          // Still remove the pending reward from localStorage to avoid confusion
-          localStorage.removeItem('pendingReward');
-        }
-      }
-    } catch (error) {
-      toast.error('Failed to apply your reward. Our team has been notified.');
-      
-      // Still clean up localStorage
-      localStorage.removeItem('pendingReward');
-    } finally {
-      setProcessingReward(false);
-    }
-  };
-  
-  // Function to restore pending rewards if payment was cancelled
-  const restorePendingRewards = async () => {
-    try {
-      // Check if there's a pending reward in localStorage
-      const pendingRewardData = localStorage.getItem('pendingReward');
-      
-      if (pendingRewardData) {
-        const pendingReward = JSON.parse(pendingRewardData);
-        
-        // If the pending reward belongs to this user, we just need to remove it from localStorage
-        // It was never actually redeemed on the backend, so it's still available
-        if (pendingReward.userId === user?.uid) {
-          // Remove from localStorage
-          localStorage.removeItem('pendingReward');
-          
-          // Clear any checkout data as well
-          localStorage.removeItem('checkoutData');
-          
-          toast.success('Your reward has been restored and is available for your next purchase.');
-        }
-      }
-    } catch (error) {
-      toast.error('There was an issue restoring your reward. Please contact support.');
-    }
-  };
+        });
 
-  const isCancelled = status === 'cancelled';
+        if (response.data) {
+          setOrder(response.data);
+        } else {
+          setError('Order not found');
+        }
+      } catch (err) {
+        console.error('Error fetching order details:', err);
+        setError('Failed to load order details');
+        toast.error('Failed to load order details');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  return (
-    <motion.div
-      className="min-h-screen bg-gray-100 flex items-center justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-        <div className={`mb-6 ${isCancelled ? 'text-red-500' : 'text-green-500'}`}>
-          {isCancelled ? (
-            <FaTimesCircle className="w-20 h-20 mx-auto" />
-          ) : (
-            <FaCheckCircle className="w-20 h-20 mx-auto" />
-          )}
+    fetchOrderDetails();
+  }, [orderId, user, location.state]);
+
+  if (loading) {
+    return (
+      <div className="order-confirmation-page">
+        <div className="container">
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Loading order details...</p>
+          </div>
         </div>
-        
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          {isCancelled ? 'Payment Cancelled' : 'Payment Successful!'}
-        </h1>
-        
-        <p className="text-gray-600 mb-6">
-          {isCancelled 
-            ? `Your order #${orderId} was not completed. No charges were made.`
-            : `Thank you for your purchase. Your order #${orderId} has been confirmed.`}
-        </p>
+      </div>
+    );
+  }
 
-        <div className="space-y-4">
-          {!isCancelled && (
-            <>
-              <p className="text-gray-600">
-                A confirmation email has been sent to your inbox.
-              </p>
-              {processingReward && (
-                <p className="text-emerald-600 text-sm">
-                  Processing your reward...
-                </p>
-              )}
-            </>
-          )}
-          {isCancelled && (
-            <p className="text-gray-600">
-              Any rewards you applied have been restored to your account.
-            </p>
-          )}
-          
-          <div className="pt-6">
-            <Link
-              to={isCancelled ? "/cart" : "/products"}
-              className={`px-6 py-3 rounded-lg transition-colors ${
-                isCancelled 
-                  ? 'bg-gray-500 hover:bg-gray-600 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-            >
-              {isCancelled ? 'Back to Cart' : 'Continue Shopping'}
+  if (error || !order) {
+    return (
+      <div className="order-confirmation-page">
+        <div className="container">
+          <div className="error-container">
+            <h2>Order Not Found</h2>
+            <p>{error || 'Unable to retrieve order information'}</p>
+            <Link to="/products" className="primary-button">
+              Continue Shopping
             </Link>
           </div>
         </div>
       </div>
-    </motion.div>
+    );
+  }
+
+  // Format date
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+  };
+
+  return (
+    <div className="order-confirmation-page">
+      {/* Temporary Payment Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div 
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="temporary-payment-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <button 
+                className="modal-close-button"
+                onClick={() => setShowModal(false)}
+              >
+                <FaTimes />
+              </button>
+              <div className="modal-icon">
+                <MdInfo />
+              </div>
+              <h3>Important Payment Information</h3>
+              <p>
+                The manual payment process is <strong>temporary</strong>. We're currently working on implementing online payment options to provide you with a more convenient shopping experience.
+              </p>
+              <p>
+                Our team will contact you shortly with payment instructions via email or phone.
+              </p>
+              <button 
+                className="modal-button"
+                onClick={() => setShowModal(false)}
+              >
+                I Understand
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="container">
+        <motion.div 
+          className="confirmation-header"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="success-icon">
+            <FaCheckCircle />
+          </div>
+          <h1>Thank You for Your Order!</h1>
+          <p className="confirmation-message">
+            Your order has been received and is being processed. You will receive an email confirmation shortly.
+          </p>
+        </motion.div>
+
+        <motion.div 
+          className="order-info-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="order-info-header">
+            <h2>Order Information</h2>
+            <span className="order-status">{order.status}</span>
+          </div>
+          <div className="order-details-grid">
+            <div className="order-detail">
+              <span className="detail-label">Order ID:{order._id}</span>
+            </div>
+            <div className="order-detail">
+              <span className="detail-label">Order Date:</span>
+              <span className="detail-value">{formatDate(order.createdAt)}</span>
+            </div>
+            <div className="order-detail">
+              <span className="detail-label">Customer Name:</span>
+              <span className="detail-value">{order.customerName}</span>
+            </div>
+            <div className="order-detail">
+              <span className="detail-label">Email:</span>
+              <span className="detail-value">{order.shipping?.email}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className="payment-info-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <div className="card-header">
+            <MdPayment className="card-icon" />
+            <h2>Payment Information</h2>
+          </div>
+          <div className="payment-status">
+            <div className="status-badge pending">Payment Pending</div>
+          </div>
+          <div className="manual-payment-info">
+            <h3>Manual Payment Instructions</h3>
+            <p>Your order has been received and is pending payment. Our team will contact you shortly with payment instructions via email or phone.</p>
+            <div className="temporary-notice">
+              <MdInfo className="notice-icon" />
+              <p>This manual payment process is temporary. We're working on implementing online payment options for a more convenient experience.</p>
+            </div>
+            <div className="payment-amount">
+              <span>Total Amount Due:</span>
+              <span className="amount">₱{order.summary?.total.toLocaleString('en-PH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="two-column-grid">
+          <motion.div 
+            className="shipping-info-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <div className="card-header">
+              <FaShippingFast className="card-icon" />
+              <h2>Shipping Information</h2>
+            </div>
+            <div className="shipping-details">
+              <div className="shipping-detail">
+                <FaMapMarkerAlt className="detail-icon" />
+                <div>
+                  <h4>Delivery Address</h4>
+                  <p>{order.shipping?.fullAddress}</p>
+                </div>
+              </div>
+              <div className="shipping-detail">
+                <FaPhoneAlt className="detail-icon" />
+                <div>
+                  <h4>Contact Number</h4>
+                  <p>{order.shipping?.phone}</p>
+                </div>
+              </div>
+              <div className="shipping-detail">
+                <FaEnvelope className="detail-icon" />
+                <div>
+                  <h4>Email</h4>
+                  <p>{order.shipping?.email}</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            className="order-summary-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <div className="card-header">
+              <FaFileInvoice className="card-icon" />
+              <h2>Order Summary</h2>
+            </div>
+            <div className="summary-details">
+              <div className="summary-row">
+                <span>Subtotal</span>
+                <span>₱{order.summary?.subtotal.toLocaleString('en-PH', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}</span>
+              </div>
+              <div className="summary-row">
+                <span>Tax (12%)</span>
+                <span>₱{order.summary?.tax.toLocaleString('en-PH', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}</span>
+              </div>
+              <div className="summary-row">
+                <span>Shipping</span>
+                <span>₱{order.summary?.shipping.toLocaleString('en-PH', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}</span>
+              </div>
+              {order.summary?.rewardDiscount > 0 && (
+                <div className="summary-row discount">
+                  <span>Reward Discount</span>
+                  <span>-₱{order.summary.rewardDiscount.toLocaleString('en-PH', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}</span>
+                </div>
+              )}
+              <div className="summary-total">
+                <span>Total</span>
+                <span>₱{order.summary?.total.toLocaleString('en-PH', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        <motion.div 
+          className="order-items-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          <div className="card-header">
+            <FaBox className="card-icon" />
+            <h2>Order Items</h2>
+            <span className="item-count">{order.items?.length || 0} items</span>
+          </div>
+          <div className="order-items-list">
+            {order.items?.map((item, index) => (
+              <div className="order-item" key={index}>
+                <img 
+                  src={item.image || 'https://via.placeholder.com/100'} 
+                  alt={item.name} 
+                  className="item-image"
+                />
+                <div className="item-details">
+                  <h4 className="item-name">{item.name}</h4>
+                  {item.variationDisplay && (
+                    <p className="item-variation">Variation: {item.variationDisplay}</p>
+                  )}
+                  <div className="item-meta">
+                    <span className="item-quantity">Qty: {item.quantity}</span>
+                    <span className="item-price">₱{Number(item.price).toLocaleString('en-PH', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}</span>
+                  </div>
+                </div>
+                <div className="item-subtotal">
+                  <span>₱{Number(item.subtotal || (item.price * item.quantity)).toLocaleString('en-PH', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className="action-buttons"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+        >
+          <Link to="/products" className="primary-button">
+            Continue Shopping
+          </Link>
+          {user ? (
+            <Link to="/order-history" className="secondary-button">
+              View All Orders
+            </Link>
+          ) : (
+            <Link to="/login" className="secondary-button">
+              Sign In to View Your Orders
+            </Link>
+          )}
+        </motion.div>
+      </div>
+    </div>
   );
 };
 
