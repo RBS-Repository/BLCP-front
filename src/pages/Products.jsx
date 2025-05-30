@@ -1148,25 +1148,28 @@ const Products = () => {
                 }}
                 className="flex-grow text-left px-4 py-3 transition-colors"
                 style={{ 
-                  paddingLeft: level > 0 ? `${(level * 12) + 16}px` : '16px',
+                  paddingLeft: level > 0 ? `${(level * 8) + 16}px` : '16px',
+                  paddingRight: '8px',
                   maxWidth: 'calc(100% - 40px)' /* Ensure space for dropdown arrow */
                 }}
               >
                 <div className="flex flex-wrap items-center w-full">
-                  <div className="mr-1 break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                  <div className="break-words w-full mb-1" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
                     {category.name}
                   </div>
                   
-                  {/* Show count badge if it has children */}
-                  {hasChildren && (
-                    <span className={`mt-1 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                      selectedCategory === category.id 
-                        ? 'bg-white/20 text-white' 
-                        : 'bg-[#363a94]/10 text-[#363a94]'
-                    }`}>
-                      {childrenCount}
-                    </span>
-                  )}
+                  <div className="flex items-center mt-1">
+                    {/* Show count badge if it has children */}
+                    {hasChildren && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                        selectedCategory === category.id 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-[#363a94]/10 text-[#363a94]'
+                      }`}>
+                        {childrenCount} subcategories
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
               
@@ -1213,9 +1216,9 @@ const Products = () => {
                 opacity: isExpanded ? 1 : 0
               }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden ml-3"
+              className="overflow-hidden"
             >
-              <div className={`pt-1 ${level > 0 ? 'border-l border-gray-200 pl-2 ml-1' : ''}`}>
+              <div className={`pt-1 pl-4 ${level > 0 ? 'border-l-2 border-gray-200 ml-6' : 'ml-4'}`}>
                 {renderCategoryHierarchy(allCategories, category.id, level + 1)}
               </div>
             </motion.div>
@@ -1522,9 +1525,9 @@ const Products = () => {
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="flex flex-col md:flex-row md:gap-8">
+        <div className="flex flex-col md:flex-row md:gap-6">
           {/* Left Sidebar - Filter Panel (only visible on desktop) */}
-          <div className="hidden md:block md:w-64 lg:w-72 flex-shrink-0">
+          <div className="hidden md:block md:w-72 lg:w-80 flex-shrink-0">
         <motion.div 
               className="sticky top-24 filter-panel backdrop-blur-sm bg-white/90 border border-gray-200 rounded-2xl shadow-lg overflow-hidden"
               initial={{ opacity: 0, x: -20 }}
@@ -1573,7 +1576,7 @@ const Products = () => {
                 {/* Categories - Converted to vertical stack with hierarchy */}
                 <div className="space-y-3">
                   <h3 className="text-md font-medium text-gray-800">Categories</h3>
-                  <div className="max-h-80 overflow-y-auto pr-2 category-stack">
+                  <div className="max-h-[400px] overflow-y-auto pr-2 category-stack custom-scrollbar">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -1671,7 +1674,7 @@ const Products = () => {
             </motion.div>
           </div>
 
-          {/* Main Content Area - Product Filters (only for mobile) and Products Grid */}
+          {/* Main Content - Product Filters (only for mobile) and Products Grid */}
           <div className="flex-1">
             {/* Product Filters for Mobile View */}
             <div id="product-filters" className="md:hidden mb-8">
@@ -2143,6 +2146,31 @@ const Products = () => {
           -webkit-backdrop-filter: blur(8px);
           background-color: rgba(255, 255, 255, 0.95);
           border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+        }
+        
+        /* Custom scrollbar for category list */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #c5c7d0;
+          border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #9fa2b4;
+        }
+        
+        /* For Firefox */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #c5c7d0 #f1f1f1;
         }
       `}</style>
     </div>

@@ -2,6 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaSearch, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
+// Custom scrollbar styles
+const scrollbarStyles = {
+  WebkitScrollbarWidth: '6px',
+  scrollbarWidth: 'thin',
+  scrollbarColor: '#c5c7d0 #f1f1f1',
+  WebkitScrollbarTrack: '#f1f1f1',
+  WebkitScrollbarThumb: '#c5c7d0',
+  WebkitScrollbarThumbHover: '#9fa2b4',
+  WebkitScrollbarThumbBorderRadius: '10px',
+  WebkitScrollbarTrackBorderRadius: '10px',
+};
+
 const MobileFilterDrawer = ({
   isOpen,
   onClose,
@@ -164,29 +176,32 @@ const MobileFilterDrawer = ({
                   maxWidth: 'calc(100% - 48px)' /* Ensure space for dropdown arrow */
                 }}
               >
-                <div className="flex items-center w-full overflow-hidden">
-                  {/* Remove indentation indicators for hierarchy */}
-                  <span className={`truncate ${level === 0 ? 'font-medium' : ''}`}>{category.name}</span>
+                <div className="flex flex-wrap items-center w-full">
+                  <div className="break-words w-full mb-1" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                    {category.name}
+                  </div>
                   
-                  {/* Product count badge */}
-                  <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                    selectedCategory === category.id 
-                      ? 'bg-white/20 text-white' 
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {productCount}
-                  </span>
-                  
-                  {/* Subcategory indicator */}
-                  {hasChildCategories && (
-                    <span className={`ml-1 text-xs px-1 py-0.5 rounded-full flex-shrink-0 ${
+                  <div className="flex items-center mt-1">
+                    {/* Product count badge */}
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                       selectedCategory === category.id 
                         ? 'bg-white/20 text-white' 
-                        : 'bg-[#363a94]/10 text-[#363a94]'
+                        : 'bg-gray-100 text-gray-600'
                     }`}>
-                      +{childCount}
+                      {productCount}
                     </span>
-                  )}
+                    
+                    {/* Subcategory indicator */}
+                    {hasChildCategories && (
+                      <span className={`ml-1 text-xs px-1 py-0.5 rounded-full flex-shrink-0 ${
+                        selectedCategory === category.id 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-[#363a94]/10 text-[#363a94]'
+                      }`}>
+                        +{childCount} subcategories
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
               
@@ -323,65 +338,69 @@ const MobileFilterDrawer = ({
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Categories</h3>
                 
-                {/* All Categories button */}
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    
-                    // Show loading indicator for the product section only
-                    const productSection = document.getElementById('products-section');
-                    if (productSection) {
-                      productSection.classList.add('section-loading');
-                    }
-                    
-                    // Select the "all" category
-                    onSelectCategory('all');
-                    
-                    // Close the drawer after a short delay
-                    setTimeout(() => {
-                      onClose();
+                <div className="max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  {/* All Categories button */}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
                       
-                      // Scroll to products section with smooth animation
+                      // Show loading indicator for the product section only
+                      const productSection = document.getElementById('products-section');
+                      if (productSection) {
+                        productSection.classList.add('section-loading');
+                      }
+                      
+                      // Select the "all" category
+                      onSelectCategory('all');
+                      
+                      // Close the drawer after a short delay
                       setTimeout(() => {
-                        const productsSection = document.getElementById('products-section');
-                        if (productsSection) {
-                          const headerOffset = 100;
-                          const elementPosition = productsSection.getBoundingClientRect().top;
-                          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                          
-                          window.scrollTo({
-                            top: offsetPosition,
-                            behavior: "smooth"
-                          });
-                        }
+                        onClose();
                         
-                        // Remove loading class after products are updated
+                        // Scroll to products section with smooth animation
                         setTimeout(() => {
-                          if (productSection) {
-                            productSection.classList.remove('section-loading');
+                          const productsSection = document.getElementById('products-section');
+                          if (productsSection) {
+                            const headerOffset = 100;
+                            const elementPosition = productsSection.getBoundingClientRect().top;
+                            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                            
+                            window.scrollTo({
+                              top: offsetPosition,
+                              behavior: "smooth"
+                            });
                           }
-                        }, 400);
-                      }, 100);
-                    }, 300);
-                  }}
-                  className={`w-full mb-3 px-4 py-3.5 rounded-lg flex items-center justify-between ${
-                    selectedCategory === 'all'
-                      ? 'bg-[#363a94] text-white'
-                      : 'bg-white border border-gray-200 text-gray-700'
-                  }`}
-                >
-                  <span className="font-medium truncate">All Categories</span>
-                  <span className={`ml-1 text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    selectedCategory === 'all' 
-                      ? 'bg-white/20 text-white' 
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {categories.length - 1}
-                  </span>
-                </button>
-                
-                {/* Category hierarchy */}
-                {renderCategoryHierarchy(categories.filter(cat => cat.id !== 'all'))}
+                          
+                          // Remove loading class after products are updated
+                          setTimeout(() => {
+                            if (productSection) {
+                              productSection.classList.remove('section-loading');
+                            }
+                          }, 400);
+                        }, 100);
+                      }, 300);
+                    }}
+                    className={`w-full mb-3 px-4 py-3.5 rounded-lg flex items-center justify-between ${
+                      selectedCategory === 'all'
+                        ? 'bg-[#363a94] text-white'
+                        : 'bg-white border border-gray-200 text-gray-700'
+                    }`}
+                  >
+                    <div className="font-medium break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
+                      All Categories
+                    </div>
+                    <span className={`ml-2 text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      selectedCategory === 'all' 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {categories.length - 1}
+                    </span>
+                  </button>
+                  
+                  {/* Category hierarchy */}
+                  {renderCategoryHierarchy(categories.filter(cat => cat.id !== 'all'))}
+                </div>
               </div>
               
               {/* Active Filters Summary */}
@@ -402,13 +421,13 @@ const MobileFilterDrawer = ({
                     )}
                     
                     {selectedCategory !== 'all' && (
-                      <div className="flex items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs">
-                        <span className="truncate max-w-[120px]">
+                      <div className="flex flex-wrap items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs">
+                        <div className="break-words mr-1" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
                           Category: {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
-                        </span>
+                        </div>
                         <button 
                           onClick={() => onSelectCategory('all')}
-                          className="ml-1.5 text-purple-500 hover:text-purple-700 flex-shrink-0"
+                          className="ml-1 text-purple-500 hover:text-purple-700 flex-shrink-0"
                         >
                           <FaTimes size={10} />
                         </button>
