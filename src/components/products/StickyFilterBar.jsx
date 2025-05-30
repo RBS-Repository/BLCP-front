@@ -90,10 +90,10 @@ const StickyFilterBar = ({
               {/* Display active category filter */}
               {activeFilters.category && (
                 <div className="flex items-center bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-xs">
-                  <span className="truncate max-w-[100px]">{activeFilters.category}</span>
+                  <span className="truncate max-w-[80px]">{activeFilters.category}</span>
                   <button 
                     onClick={() => onClearFilter('category')}
-                    className="ml-1 text-purple-500 hover:text-purple-700"
+                    className="ml-1 text-purple-500 hover:text-purple-700 flex-shrink-0"
                   >
                     <FaTimes size={8} />
                   </button>
@@ -103,10 +103,10 @@ const StickyFilterBar = ({
               {/* Display active search filter */}
               {activeFilters.search && (
                 <div className="flex items-center bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs">
-                  <span className="truncate max-w-[100px]">{activeFilters.search}</span>
+                  <span className="truncate max-w-[80px]">{activeFilters.search}</span>
                   <button 
                     onClick={() => onClearFilter('search')}
-                    className="ml-1 text-blue-500 hover:text-blue-700"
+                    className="ml-1 text-blue-500 hover:text-blue-700 flex-shrink-0"
                   >
                     <FaTimes size={8} />
                   </button>
@@ -116,12 +116,12 @@ const StickyFilterBar = ({
               {/* Display active sort filter */}
               {activeFilters.sort && (
                 <div className="flex items-center bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs">
-                  <span className="truncate max-w-[100px]">
+                  <span className="truncate max-w-[80px]">
                     {sortOptions.find(opt => opt.id === activeFilters.sort)?.name || activeFilters.sort}
                   </span>
                   <button 
                     onClick={() => onClearFilter('sort')}
-                    className="ml-1 text-amber-500 hover:text-amber-700"
+                    className="ml-1 text-amber-500 hover:text-amber-700 flex-shrink-0"
                   >
                     <FaTimes size={8} />
                   </button>
