@@ -530,7 +530,16 @@ const Products = () => {
     
     // Reset hasMore flag based on whether there are more products to show
     setHasMore(filteredAndSortedProducts.length > pageSize * page);
-  }, [filteredAndSortedProducts, page, pageSize]);
+    
+    // Scroll to top of product section when filters change
+    const productSection = document.getElementById('products-section');
+    if (productSection && (selectedCategory || searchQuery || sortBy !== 'featured')) {
+      window.scrollTo({
+        top: productSection.offsetTop - 100,
+        behavior: 'smooth'
+      });
+    }
+  }, [filteredAndSortedProducts, page, pageSize, selectedCategory, searchQuery, sortBy]);
 
   // Add dedicated effect for category change - to avoid full reloads
   useEffect(() => {
@@ -540,6 +549,12 @@ const Products = () => {
     if (productSection) {
       // Add loading class to the product section only
       productSection.classList.add('section-loading');
+      
+      // Scroll to the top of the products section with a slight offset for header
+      window.scrollTo({
+        top: productSection.offsetTop - 100,
+        behavior: 'smooth'
+      });
       
       // Use a shorter timeout for better UX
       const timer = setTimeout(() => {
@@ -820,6 +835,12 @@ const Products = () => {
     const productSection = document.getElementById('products-section');
     if (productSection) {
       productSection.classList.add('section-loading');
+      
+      // Scroll to the top of the products section
+      window.scrollTo({
+        top: productSection.offsetTop - 100,
+        behavior: 'smooth'
+      });
     }
     
     switch (filterKey) {
@@ -837,6 +858,8 @@ const Products = () => {
         break;
     }
     setCurrentPage(1);
+    setPage(1); // Reset infinite scroll page
+    setDisplayedProducts([]); // Clear displayed products to force refresh
     
     // Remove loading class after products are updated
     setTimeout(() => {
@@ -852,6 +875,12 @@ const Products = () => {
     const productSection = document.getElementById('products-section');
     if (productSection) {
       productSection.classList.add('section-loading');
+      
+      // Scroll to the top of the products section
+      window.scrollTo({
+        top: productSection.offsetTop - 100,
+        behavior: 'smooth'
+      });
     }
     
     setSelectedCategory('all');
@@ -859,6 +888,8 @@ const Products = () => {
     setInputValue('');
     setSortBy('featured');
     setCurrentPage(1);
+    setPage(1); // Reset infinite scroll page
+    setDisplayedProducts([]); // Clear displayed products to force refresh
     
     // Remove loading class after products are updated
     setTimeout(() => {
@@ -1349,62 +1380,108 @@ const Products = () => {
         </ol>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - Redesigned with modern aesthetics */}
       <motion.section
-        className="relative overflow-hidden mb-8"
+        className="relative overflow-hidden mb-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-[#363a94] to-[#2a2d73] z-0">
-          <div className="absolute inset-0 opacity-10">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="url(#grid-pattern)" />
-              <defs>
-                <pattern id="grid-pattern" patternUnits="userSpaceOnUse" width="10" height="10">
-                  <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5" />
+        {/* Background with improved gradient and visual elements */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#363a94] via-[#2d327d] to-[#1e2156] z-0">
+          {/* Animated background elements */}
+          <div className="absolute inset-0">
+            <div className="absolute top-0 right-0 w-full h-full overflow-hidden">
+              {/* Decorative circles */}
+              <motion.div 
+                className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/5"
+                animate={{ 
+                  scale: [1, 1.05, 1],
+                  rotate: [0, 5, 0]
+                }}
+                transition={{ 
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut" 
+                }}
+              />
+              <motion.div 
+                className="absolute top-40 -right-40 w-96 h-96 rounded-full bg-indigo-300/5"
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotate: [0, -5, 0]
+                }}
+                transition={{ 
+                  duration: 10,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1
+                }}
+              />
+            </div>
+            
+            {/* Subtle grid pattern overlay */}
+            <div className="absolute inset-0 opacity-5">
+              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <pattern id="grid-pattern" patternUnits="userSpaceOnUse" width="20" height="20">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5" />
                 </pattern>
-              </defs>
-            </svg>
+                <rect width="100%" height="100%" fill="url(#grid-pattern)" />
+              </svg>
+            </div>
+            
+            {/* Subtle light beams */}
+            <motion.div 
+              className="absolute top-0 left-0 w-full h-full opacity-20" 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.2 }}
+              transition={{ duration: 2 }}
+            >
+              <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white opacity-10 blur-3xl"></div>
+              <div className="absolute -bottom-40 -left-20 w-[30rem] h-[30rem] rounded-full bg-[#ff7bac] opacity-10 blur-3xl"></div>
+            </motion.div>
           </div>
-          <motion.div 
-            className="absolute top-0 left-0 w-full h-full" 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.1 }}
-            transition={{ duration: 2 }}
-          >
-            <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-white opacity-10 blur-3xl"></div>
-            <div className="absolute -bottom-24 -left-12 w-80 h-80 rounded-full bg-[#ff7bac] opacity-10 blur-3xl"></div>
-          </motion.div>
         </div>
 
+        {/* Content Container */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="py-16 md:py-20 flex flex-col md:flex-row items-center">
-            <div className="text-center md:text-left md:w-2/3">
+          <div className="py-12 md:py-16 lg:py-20 flex flex-col md:flex-row items-center">
+            {/* Left Content Area */}
+            <div className="text-center md:text-left md:w-2/3 relative">
+              {/* Category Badge */}
               <motion.div 
-                className="inline-block px-3 py-1 mb-4 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white border border-white/20"
+                className="inline-flex items-center px-4 py-1.5 mb-5 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white border border-white/20 shadow-lg"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1 }}
               >
-                <span className="inline-block mr-1.5 w-2 h-2 rounded-full bg-green-400"></span>
-                {selectedCategory !== 'all' ? `Browsing ${getCategoryName(selectedCategory)}` : 'Premium Korean Skincare'}
+                <span className="inline-block mr-2 w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                <span className="font-medium">
+                  {selectedCategory !== 'all' ? `Browsing ${getCategoryName(selectedCategory)}` : 'Premium Korean Skincare'}
+                </span>
               </motion.div>
               
+              {/* Main Heading with Gradient Text */}
               <motion.h1
-                className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-white"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                {selectedCategory !== 'all' 
-                  ? `${getCategoryName(selectedCategory)}`
-                  : 'Our Products Collection'
-                }
+                <span className="inline-block">
+                  {selectedCategory !== 'all' 
+                    ? `${getCategoryName(selectedCategory)}`
+                    : 'Our Products'
+                  }
+                </span>
+                <span className="block mt-1 bg-clip-text text-transparent bg-gradient-to-r from-white to-indigo-200">
+                  {selectedCategory !== 'all' ? 'Collection' : 'Collection'}
+                </span>
               </motion.h1>
               
+              {/* Description with improved styling */}
               <motion.p
-                className="text-lg sm:text-xl text-white/90 max-w-2xl md:max-w-xl mx-auto md:mx-0"
+                className="text-lg sm:text-xl text-white/90 max-w-2xl md:max-w-xl mx-auto md:mx-0 leading-relaxed"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
@@ -1415,26 +1492,37 @@ const Products = () => {
                 }
               </motion.p>
               
+              {/* Action Buttons with improved styling */}
               <motion.div
-                className="mt-6 flex flex-wrap justify-center md:justify-start gap-3"
+                className="mt-8 flex flex-wrap justify-center md:justify-start gap-4"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                <button 
+                {/* Shop Now Button */}
+                <motion.button 
                   onClick={() => {
                     const productsSection = document.getElementById('products-section');
                     if (productsSection) {
-                      productsSection.scrollIntoView({ behavior: 'smooth' });
+                      window.scrollTo({
+                        top: productsSection.offsetTop - 100,
+                        behavior: 'smooth'
+                      });
                     }
                   }}
-                  className="px-6 py-2.5 bg-white text-[#363a94] rounded-lg font-medium hover:bg-opacity-90 transition-all shadow-lg hover:shadow-xl"
+                  className="px-7 py-3 bg-white text-[#363a94] rounded-lg font-medium hover:bg-opacity-95 transition-all shadow-lg hover:shadow-xl flex items-center group"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                 >
                   Shop Now
-                </button>
+                  <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </motion.button>
                 
+                {/* View All Products Button - Only shown when in a category */}
                 {selectedCategory !== 'all' && (
-                  <button 
+                  <motion.button 
                     onClick={(e) => {
                       e.preventDefault();
                       
@@ -1447,17 +1535,15 @@ const Products = () => {
                       // Set the selected category to 'all'
                       setSelectedCategory('all');
                       setCurrentPage(1);
+                      setPage(1); // Reset infinite scroll page
+                      setDisplayedProducts([]); // Clear displayed products to force refresh
                       
                       // Scroll to products section with smooth animation
                       setTimeout(() => {
                         const productsSection = document.getElementById('products-section');
                         if (productsSection) {
-                          const headerOffset = 100;
-                          const elementPosition = productsSection.getBoundingClientRect().top;
-                          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                          
                           window.scrollTo({
-                            top: offsetPosition,
+                            top: productsSection.offsetTop - 100,
                             behavior: "smooth"
                           });
                         }
@@ -1470,27 +1556,153 @@ const Products = () => {
                         }, 400);
                       }, 100);
                     }}
-                    className="px-6 py-2.5 bg-transparent border border-white text-white rounded-lg font-medium hover:bg-white/10 transition-all"
+                    className="px-7 py-3 bg-transparent border border-white/30 text-white rounded-lg font-medium hover:bg-white/10 transition-all flex items-center group backdrop-blur-sm"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                   >
                     View All Products
-                  </button>
+                    <svg className="w-4 h-4 ml-2 opacity-70 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </motion.button>
                 )}
               </motion.div>
+              
+              {/* Stats counter - Only shown when not in a specific category */}
+              {selectedCategory === 'all' && (
+                <motion.div 
+                  className="mt-10 flex flex-wrap justify-center md:justify-start gap-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <div className="flex flex-col items-center md:items-start">
+                    <span className="text-3xl font-bold text-white">{products.length}+</span>
+                    <span className="text-sm text-white/70">Products</span>
+                  </div>
+                  <div className="flex flex-col items-center md:items-start">
+                    <span className="text-3xl font-bold text-white">{categories.length - 1}+</span>
+                    <span className="text-sm text-white/70">Categories</span>
+                  </div>
+                  <div className="flex flex-col items-center md:items-start">
+                    <span className="text-3xl font-bold text-white">100%</span>
+                    <span className="text-sm text-white/70">Quality</span>
+                  </div>
+                </motion.div>
+              )}
             </div>
             
+            {/* Right Content Area - Floating Product Cards */}
             <motion.div 
-              className="hidden md:block md:w-1/3 relative h-60"
+              className="hidden md:block md:w-1/3 relative h-72 lg:h-80"
               initial={{ opacity: 0, scale: 0.9, x: 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
             >
-              <div className="absolute top-0 right-0 w-full h-full">
-                <div className="absolute top-4 right-4 w-24 h-24 rounded-xl bg-purple-400/20 backdrop-blur-sm border border-white/10 shadow-xl transform rotate-12"></div>
-                <div className="absolute bottom-8 right-20 w-16 h-16 rounded-lg bg-pink-400/30 backdrop-blur-sm border border-white/10 shadow-xl transform -rotate-6"></div>
-                <div className="absolute top-10 right-36 w-20 h-20 rounded-full bg-blue-400/20 backdrop-blur-sm border border-white/10 shadow-xl"></div>
+              <div className="absolute inset-0">
+                {/* Floating Product Cards */}
+                <motion.div 
+                  className="absolute top-0 right-12 w-36 h-48 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl overflow-hidden"
+                  animate={{ 
+                    y: [0, -10, 0],
+                    rotate: [0, 2, 0]
+                  }}
+                  transition={{ 
+                    duration: 6, 
+                    repeat: Infinity,
+                    ease: "easeInOut" 
+                  }}
+                >
+                  {products.length > 0 && products[0]?.image && (
+                    <img 
+                      src={products[0].image} 
+                      alt="Featured product" 
+                      className="w-full h-full object-cover opacity-90"
+                    />
+                  )}
+                </motion.div>
+                
+                <motion.div 
+                  className="absolute bottom-4 right-4 w-40 h-52 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl overflow-hidden"
+                  animate={{ 
+                    y: [0, 10, 0],
+                    rotate: [0, -3, 0]
+                  }}
+                  transition={{ 
+                    duration: 7, 
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 0.5
+                  }}
+                >
+                  {products.length > 1 && products[1]?.image && (
+                    <img 
+                      src={products[1].image} 
+                      alt="Featured product" 
+                      className="w-full h-full object-cover opacity-90"
+                    />
+                  )}
+                </motion.div>
+                
+                <motion.div 
+                  className="absolute top-16 right-48 w-32 h-44 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl overflow-hidden"
+                  animate={{ 
+                    y: [0, 8, 0],
+                    rotate: [0, 1, 0]
+                  }}
+                  transition={{ 
+                    duration: 8, 
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 1
+                  }}
+                >
+                  {products.length > 2 && products[2]?.image && (
+                    <img 
+                      src={products[2].image} 
+                      alt="Featured product" 
+                      className="w-full h-full object-cover opacity-90"
+                    />
+                  )}
+                </motion.div>
+                
+                {/* Decorative elements */}
+                <motion.div 
+                  className="absolute top-40 right-32 w-8 h-8 rounded-full bg-indigo-400/30 backdrop-blur-sm border border-white/10 shadow-xl"
+                  animate={{ 
+                    y: [0, -15, 0],
+                    opacity: [0.5, 1, 0.5]
+                  }}
+                  transition={{ 
+                    duration: 4, 
+                    repeat: Infinity,
+                    ease: "easeInOut" 
+                  }}
+                />
+                
+                <motion.div 
+                  className="absolute top-10 right-24 w-6 h-6 rounded-full bg-pink-400/30 backdrop-blur-sm border border-white/10 shadow-xl"
+                  animate={{ 
+                    y: [0, -10, 0],
+                    opacity: [0.5, 1, 0.5]
+                  }}
+                  transition={{ 
+                    duration: 5, 
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 1
+                  }}
+                />
               </div>
             </motion.div>
           </div>
+        </div>
+        
+        {/* Wave divider at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-8 overflow-hidden">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" className="absolute bottom-0 w-full h-16 text-gray-50">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.11,140.83,94.17,208.18,70.28,289.4,40.17,283.09,63.45,321.39,56.44Z" className="fill-current"></path>
+          </svg>
         </div>
       </motion.section>
 
@@ -1888,6 +2100,7 @@ const Products = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
         id="products-section"
+        ref={productListRef}
       >
         {/* Results count & pagination info */}
         <div className="flex justify-between items-center mb-6">
