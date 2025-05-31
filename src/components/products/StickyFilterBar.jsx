@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FaSearch, FaTimes, FaFilter, FaList, FaGripHorizontal, FaSortAmountDown } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
-const StickyFilterBar = ({ 
+const StickyFilterBar = ({
   activeFilters, 
   onClearFilter, 
   onClearAll, 
@@ -30,7 +30,7 @@ const StickyFilterBar = ({
     onSearchChange(inputValue);
     setShowSearch(false);
   };
-
+  
   return (
     <div className="sticky-filter-bar w-full py-2 px-3">
       <div className="max-w-7xl mx-auto">
@@ -88,61 +88,61 @@ const StickyFilterBar = ({
               </button>
               
               {/* Display active category filter */}
-              {activeFilters.category && (
+                {activeFilters.category && (
                 <div className="flex items-center bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-xs">
                   <span className="max-w-[120px] break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
                     {activeFilters.category}
                   </span>
-                  <button 
-                    onClick={() => onClearFilter('category')}
+                    <button 
+                      onClick={() => onClearFilter('category')}
                     className="ml-1 text-purple-500 hover:text-purple-700 flex-shrink-0"
-                  >
+                    >
                     <FaTimes size={8} />
-                  </button>
-                </div>
-              )}
-              
+                    </button>
+                  </div>
+                )}
+                
               {/* Display active search filter */}
-              {activeFilters.search && (
+                {activeFilters.search && (
                 <div className="flex items-center bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs">
                   <span className="max-w-[120px] break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
                     {activeFilters.search}
                   </span>
-                  <button 
-                    onClick={() => onClearFilter('search')}
+                    <button 
+                      onClick={() => onClearFilter('search')}
                     className="ml-1 text-blue-500 hover:text-blue-700 flex-shrink-0"
-                  >
+                    >
                     <FaTimes size={8} />
-                  </button>
-                </div>
-              )}
-              
+                    </button>
+                  </div>
+                )}
+                
               {/* Display active sort filter */}
-              {activeFilters.sort && (
+                {activeFilters.sort && (
                 <div className="flex items-center bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs">
                   <span className="max-w-[120px] break-words" style={{ wordBreak: 'break-word', hyphens: 'auto' }}>
                     {sortOptions.find(opt => opt.id === activeFilters.sort)?.name || activeFilters.sort}
                   </span>
-                  <button 
-                    onClick={() => onClearFilter('sort')}
+                    <button 
+                      onClick={() => onClearFilter('sort')}
                     className="ml-1 text-amber-500 hover:text-amber-700 flex-shrink-0"
-                  >
+                    >
                     <FaTimes size={8} />
-                  </button>
-                </div>
-              )}
-              
+                    </button>
+                  </div>
+                )}
+                
               {/* Show clear all button if any filter is active */}
               {(activeFilters.category || activeFilters.search || activeFilters.sort) && (
-                <button
+                <button 
                   onClick={onClearAll}
                   className="text-xs text-[#363a94] hover:underline"
                 >
                   Clear all
                 </button>
-              )}
-            </div>
-            
+            )}
+          </div>
+          
             {/* Right side - View toggle and sort */}
             <div className="flex items-center space-x-2">
               {/* View mode toggle */}
@@ -153,20 +153,20 @@ const StickyFilterBar = ({
               >
                 {gridLayout === 'list' ? <FaGripHorizontal size={14} /> : <FaList size={14} />}
               </button>
-              
-              {/* Sort dropdown */}
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => onSortChange(e.target.value)}
+            
+            {/* Sort dropdown */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => onSortChange(e.target.value)}
                   className="appearance-none pl-7 pr-8 py-2 border border-gray-200 rounded-lg bg-white text-xs"
-                >
+              >
                   {sortOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
                 <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
                   <FaSortAmountDown size={10} className="text-gray-500" />
                 </div>

@@ -1042,7 +1042,7 @@ const Home = () => {
                 Product Spotlight
               </motion.span>
               <motion.h2 
-                className="text-3xl md:text-4xl font-bold text-gray-900 mb-3"
+                className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 px-2"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -1098,7 +1098,7 @@ const Home = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent sm:from-black/70 sm:via-black/40 sm:to-transparent flex items-center">
                       <div className="max-w-xl px-4 sm:px-8 md:px-12 lg:px-16">
                         <motion.h3 
-                          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 sm:mb-4"
+                          className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4 line-clamp-2 sm:line-clamp-none"
                           initial={{ opacity: 0, x: -30 }}
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
@@ -1107,7 +1107,7 @@ const Home = () => {
                           {spotlightData.hero.title}
                         </motion.h3>
                         <motion.p 
-                          className="text-white/90 text-sm sm:text-base md:text-lg mb-4 sm:mb-6"
+                          className="text-white/90 text-sm sm:text-base md:text-lg mb-4 sm:mb-6 line-clamp-3 sm:line-clamp-none"
                           initial={{ opacity: 0, x: -30 }}
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
@@ -1168,15 +1168,15 @@ const Home = () => {
                           )}
                         </div>
                         <div className="p-5">
-                          <h3 className="text-lg font-bold text-gray-900 mb-1">{product.title}</h3>
-                          <p className="text-gray-600 text-sm">{product.description}</p>
+                          <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">{product.title}</h3>
+                          <p className="text-gray-600 text-sm line-clamp-3">{product.description}</p>
                         </div>
                       </motion.div>
                     ))}
                   </div>
                 </div>
 
-                {/* Promotion Banner from API - Hidden on mobile */}
+                {/* Promotion Banner from API - Desktop version (hidden on mobile) */}
                 <div className="hidden sm:block">
                   <motion.div 
                     className="rounded-2xl overflow-hidden shadow-lg"
@@ -1208,6 +1208,56 @@ const Home = () => {
                             <Link 
                               to={spotlightData.promotionBanner.buttonLink}
                               className="inline-flex items-center px-6 py-3 bg-white text-[#363a94] font-medium rounded-lg hover:bg-gray-100 transition-colors shadow-sm"
+                            >
+                              {spotlightData.promotionBanner.buttonText}
+                              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                              </svg>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Mobile-friendly Promotion Banner (visible only on small screens) */}
+                <div className="sm:hidden mb-8">
+                  <motion.div 
+                    className="rounded-2xl overflow-hidden shadow-lg"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <div className="bg-gradient-to-r from-[#363a94] to-indigo-700">
+                      <div className="flex flex-col">
+                        {/* Image container */}
+                        <div className="h-48 relative">
+                          <img 
+                            src={spotlightData.promotionBanner.image} 
+                            alt={spotlightData.promotionBanner.title} 
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Overlay gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#363a94]/80 to-transparent"></div>
+                          
+                          {/* Badge positioned on image */}
+                          {spotlightData.promotionBanner.badgeText && (
+                            <span className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-white">
+                              {spotlightData.promotionBanner.badgeText}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Content container */}
+                        <div className="p-6 flex flex-col justify-center">
+                          <h3 className="text-xl font-bold text-white mb-2 line-clamp-2">{spotlightData.promotionBanner.title}</h3>
+                          <p className="text-white/90 mb-4 text-sm line-clamp-3">{spotlightData.promotionBanner.description}</p>
+                          <div>
+                            <Link 
+                              to={spotlightData.promotionBanner.buttonLink}
+                              className="inline-flex items-center px-4 py-2 bg-white text-[#363a94] font-medium rounded-lg hover:bg-gray-100 transition-colors shadow-sm text-sm"
                             >
                               {spotlightData.promotionBanner.buttonText}
                               <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

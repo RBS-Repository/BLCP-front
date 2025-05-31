@@ -855,17 +855,17 @@ const Checkout = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg"
+      className="w-full mx-auto p-4 sm:p-6 bg-white rounded-xl shadow-lg"
     >
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Review Your Order</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Review Your Order</h2>
 
       {/* Order Items */}
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center mb-3 sm:mb-4">
           <h3 className="text-lg font-semibold text-gray-700">Order Items</h3>
-          <span className="item-count-badge">{cartItems.length} items</span>
-          </div>
-        <div className="items-container">
+          <span className="item-count-badge ml-2">{cartItems.length} items</span>
+        </div>
+        <div className="items-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {cartItems.map(item => {
             // Add defensive checks for item structure  
             const price = item.price || item.product?.price || 0;
@@ -875,31 +875,27 @@ const Checkout = () => {
             const image = item.product?.image || item.image || 'https://via.placeholder.com/100';
             
             return (
-              <div key={item._id || item.product?._id || Math.random()} className="item-card">
-                <img 
-                  src={image} 
-                  alt={name} 
-                  className="item-image"
-                />
-                <div className="item-details">
-                  <p className="item-name line-clamp-2 break-words">{name}</p>
+              <div key={item._id || item.product?._id || Math.random()} className="item-card flex flex-col items-center p-2 border border-gray-100 rounded-lg shadow-sm">
+                <div className="w-full h-24 sm:h-28 relative mb-2">
+                  <img 
+                    src={image} 
+                    alt={name} 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="w-full text-center">
+                  <p className="item-name text-sm font-medium line-clamp-2 break-words mb-1">{name}</p>
                   
                   {/* Display variation information if available */}
                   {item.variationDisplay && (
-                    <p className={`text-xs ${item.variationSku ? 'text-indigo-600 bg-indigo-50' : 'text-amber-600 bg-amber-50'} px-2 py-1 rounded inline-block mb-1`}>
-                      <span className="font-medium">Variation:</span> {item.variationDisplay}
-                      {!item.variationSku && (
-                        <span className="ml-1 font-medium">(Partial selection)</span>
-                      )}
+                    <p className={`text-xs ${item.variationSku ? 'text-indigo-600 bg-indigo-50' : 'text-amber-600 bg-amber-50'} px-1 py-0.5 rounded inline-block mb-1`}>
+                      {item.variationDisplay}
                     </p>
                   )}
                   
-                  <p className="item-qty">Qty: {quantity}</p>
-                  <p className="item-price">
-                    ₱{subtotal.toLocaleString('en-PH', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
+                  <p className="item-qty text-xs text-gray-500">Qty: {quantity}</p>
+                  <p className="item-price text-sm font-semibold text-indigo-700">
+                    ₱{subtotal.toLocaleString('en-PH')}
                   </p>
                 </div>
               </div>
@@ -909,60 +905,55 @@ const Checkout = () => {
       </div>
 
       {/* Order Summary */}
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="space-y-6">
         {/* Shipping Information */}
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">Shipping Information</h3>
-          <div className="space-y-3">
-            <p className="text-gray-600">
-              <span className="font-medium">Name:</span> {formData.shipping.firstName} {formData.shipping.lastName}
-            </p>
-            <p className="text-gray-600 break-words">
-              <span className="font-medium">Email:</span> {formData.shipping.email}
-            </p>
-            <p className="text-gray-600">
-              <span className="font-medium">Phone:</span> {formData.shipping.phone}
-            </p>
-            <p className="text-gray-600 break-words">
-              <span className="font-medium">Address:</span> {formData.shipping.address}
-            </p>
-            <p className="text-gray-600">
-              <span className="font-medium">City:</span> {formData.shipping.city}
-            </p>
-            <p className="text-gray-600">
-              <span className="font-medium">Province:</span> {formData.shipping.province}
-            </p>
-            <p className="text-gray-600">
-              <span className="font-medium">Postal Code:</span> {formData.shipping.postalCode}
-            </p>
+        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg">
+          <h3 className="text-lg font-semibold text-gray-700 mb-3 sm:mb-4">Shipping Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+            <div className="space-y-2">
+              <p className="text-gray-600">
+                <span className="font-medium">Name:</span> {formData.shipping.firstName} {formData.shipping.lastName}
+              </p>
+              <p className="text-gray-600 break-words">
+                <span className="font-medium">Email:</span> {formData.shipping.email}
+              </p>
+              <p className="text-gray-600">
+                <span className="font-medium">Phone:</span> {formData.shipping.phone}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-gray-600 break-words">
+                <span className="font-medium">Address:</span> {formData.shipping.address}
+              </p>
+              <p className="text-gray-600">
+                <span className="font-medium">City:</span> {formData.shipping.city}
+              </p>
+              <p className="text-gray-600">
+                <span className="font-medium">Province:</span> {formData.shipping.province}
+              </p>
+              <p className="text-gray-600">
+                <span className="font-medium">Postal Code:</span> {formData.shipping.postalCode}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Payment Summary */}
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">Payment Summary</h3>
-          <div className="space-y-3">
+        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg">
+          <h3 className="text-lg font-semibold text-gray-700 mb-3 sm:mb-4">Payment Summary</h3>
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span>₱{subtotal.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}</span>
+              <span>₱{subtotal.toLocaleString('en-PH')}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Tax (12%)</span>
-              <span>₱{tax.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}</span>
+              <span>₱{tax.toLocaleString('en-PH')}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Shipping</span>
               <div className="flex flex-col items-end">
-                <span>₱{shipping.toLocaleString('en-PH', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                })}</span>
+                <span>₱{shipping.toLocaleString('en-PH')}</span>
                 {renderShippingInfoMessage()}
               </div>
             </div>
@@ -971,22 +962,16 @@ const Checkout = () => {
             {rewardDiscount > 0 && (
               <div className="flex justify-between text-emerald-600 font-medium">
                 <span>Reward Discount</span>
-                <span>-₱{rewardDiscount.toLocaleString('en-PH', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                })}</span>
+                <span>-₱{rewardDiscount.toLocaleString('en-PH')}</span>
               </div>
             )}
             
             <div className="h-px bg-gray-200 my-2"></div>
             <div className="flex justify-between text-lg font-semibold text-gray-800">
               <span>Total</span>
-              <span>₱{total.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}</span>
+              <span>₱{total.toLocaleString('en-PH')}</span>
             </div>
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mt-3 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">
                 Payment Method: Manual Payment
                 <span className="block mt-1 text-xs">You'll receive payment instructions after placing your order</span>
@@ -997,19 +982,19 @@ const Checkout = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-8 flex justify-between gap-4">
+      <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-4">
         <button 
           type="button"
           onClick={() => setStep(3)}
-          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          className="w-full sm:w-auto px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
         >
-          Back
+          Back to Payment
         </button>
         <button 
           type="button" 
           onClick={handleSubmitOrder}
           disabled={loading}
-          className="px-8 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          className="w-full sm:w-auto px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
           {loading ? (
             <>
@@ -1089,8 +1074,8 @@ const Checkout = () => {
       )}
       
       <div className="checkout-container">
-        <div className="checkout-content">{renderStepContent()}</div>
-        {step < 5 && (
+        <div className={`checkout-content ${step === 4 ? 'review-step' : ''}`}>{renderStepContent()}</div>
+        {step < 5 && step !== 4 && (
           <div className="order-summary-sidebar">
             <div className="order-summary">
               <div className="flex items-center mb-4">
@@ -1179,6 +1164,18 @@ const Checkout = () => {
           </div>
         )}
       </div>
+
+      {/* Add custom styles for the review step */}
+      <style jsx="true">{`
+        /* Make review step take full width on mobile */
+        @media (max-width: 767px) {
+          .checkout-content.review-step {
+            width: 100%;
+            max-width: 100%;
+            padding: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 };

@@ -8,6 +8,33 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import ImageLoader from '../common/ImageLoader';
 
+// Custom scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c5c7d0;
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9fa2b4;
+  }
+  
+  /* For Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #c5c7d0 #f1f1f1;
+  }
+`;
+
 const QuickViewModal = ({ isOpen, onClose, product }) => {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -95,7 +122,7 @@ const QuickViewModal = ({ isOpen, onClose, product }) => {
             </div>
 
             {/* Product Details */}
-            <div className="flex flex-col">
+            <div className="flex flex-col h-full">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h2>
               
               <div className="flex items-center mb-4">
@@ -131,8 +158,10 @@ const QuickViewModal = ({ isOpen, onClose, product }) => {
                 </div>
               )}
               
-              <div className="mb-4">
-                <p className="text-gray-600">{product.description}</p>
+              <div className="mb-4 flex-grow">
+                <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
+                  <p className="text-gray-600">{product.description}</p>
+                </div>
               </div>
               
               {user && isEmailVerified && (
@@ -200,6 +229,9 @@ const QuickViewModal = ({ isOpen, onClose, product }) => {
             </div>
           </div>
         </div>
+
+        {/* Apply custom scrollbar styles */}
+        <style jsx="true">{scrollbarStyles}</style>
       </motion.div>
     </div>
   );
