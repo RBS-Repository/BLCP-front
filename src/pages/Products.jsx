@@ -148,7 +148,7 @@ const Products = () => {
   
   // State variables for pagination and UI
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25); // Increased from 12 to 25 for more products per page
+  const [pageSize, setPageSize] = useState(28); // Increased from 12 to 25 for more products per page
   const [totalProducts, setTotalProducts] = useState(0);
   const [showQuickView, setShowQuickView] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
