@@ -2,18 +2,17 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 /**
- * Component to track route changes and trigger loading indicators
+ * Component to track route changes
+ * Loading indicator functionality has been removed
  * Must be used inside a Router
  */
-const RouteChangeTracker = ({ onRouteChange }) => {
+const RouteChangeTracker = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Trigger the callback when route changes
-    if (onRouteChange) {
-      onRouteChange(location);
-    }
-  }, [location, onRouteChange]);
+    // Add any route change tracking logic here if needed
+    // For example, analytics tracking
+  }, [location]);
 
   // This component doesn't render anything
   return null;

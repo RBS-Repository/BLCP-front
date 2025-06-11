@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Custom hook to manage site initial loading and page transitions
+ * Custom hook to manage site initial loading
+ * Page transition loading has been removed
  * 
- * @returns {Object} Loading states and functions
+ * @returns {Object} Loading state
  */
 const usePageTransition = () => {
   // State for initial site loading (only shows on first visit)
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  
-  // State for page transitions (shows on route changes)
-  const [isPageLoading, setIsPageLoading] = useState(false);
   
   // Handle initial site load
   useEffect(() => {
@@ -55,21 +53,8 @@ const usePageTransition = () => {
     };
   }, []);
   
-  // Function to trigger page loading state
-  const startPageLoading = () => {
-    setIsPageLoading(true);
-  };
-  
-  // Function to end page loading state
-  const endPageLoading = () => {
-    setIsPageLoading(false);
-  };
-  
   return {
-    isInitialLoading,   // For initial site loader (SiteLoader)
-    isPageLoading,      // For page transition indicator
-    startPageLoading,   // Trigger page loading
-    endPageLoading      // End page loading
+    isInitialLoading    // For initial site loader (SiteLoader)
   };
 };
 

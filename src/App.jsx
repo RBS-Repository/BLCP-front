@@ -86,13 +86,7 @@ const AdminRoute = ({ children }) => {
 };
 
 function App() {
-  const { isInitialLoading, isPageLoading, startPageLoading, endPageLoading } = usePageTransition();
-
-  // Handle route changes
-  const handleRouteChange = () => {
-    startPageLoading();
-    setTimeout(endPageLoading, 500); // End loading after a short delay
-  };
+  const { isInitialLoading } = usePageTransition();
 
   return (
     <HelmetProvider>
@@ -102,15 +96,11 @@ function App() {
             <ParallaxProvider>
               <SiteLoader isLoading={isInitialLoading} />
               <Router>
-                <RouteChangeTracker onRouteChange={handleRouteChange} />
+                <RouteChangeTracker />
                 <div className={`flex flex-col min-h-screen ${isInitialLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-500'}`}>
                   <ScrollToTop />
                   <Header />
                   <main className="flex-grow">
-                    {/* Page transition loading indicator */}
-                    {isPageLoading && (
-                      <div className="fixed top-0 left-0 w-full h-1 bg-[#363a94] origin-left animate-loading-bar z-50"></div>
-                    )}
                     <Routes>
                       {/* Public routes */}
                       <Route path="/" element={<Home />} />
@@ -366,8 +356,37 @@ function App() {
                   </main>
                   <Footer />
                 </div>
-                <Toaster position="bottom-right" />
               </Router>
+              <Toaster
+                position="top-center"
+                reverseOrder={false}
+                gutter={8}
+                containerClassName=""
+                containerStyle={{}}
+                toastOptions={{
+                  duration: 5000,
+                  style: {
+                    background: '#fff',
+                    color: '#333',
+                  },
+                  success: {
+                    duration: 3000,
+                    style: {
+                      background: 'rgb(237, 247, 237)',
+                      color: 'rgb(30, 70, 32)',
+                      border: '1px solid rgba(30, 70, 32, 0.1)',
+                    },
+                  },
+                  error: {
+                    duration: 4000,
+                    style: {
+                      background: 'rgb(253, 237, 237)',
+                      color: 'rgb(95, 33, 32)',
+                      border: '1px solid rgba(95, 33, 32, 0.1)',
+                    },
+                  },
+                }}
+              />
             </ParallaxProvider>
           </WishlistProvider>
         </CartProvider>
